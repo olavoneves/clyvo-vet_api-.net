@@ -1,0 +1,16 @@
+## .NET / ASP.NET Core
+bin/
+obj/
+*.user
+*.suo
+
+## Visual Studio
+.vs/
+*.vsidx
+
+## EF Core secrets (não versionar credenciais)
+**/appsettings.Development.json
+
+## OS
+.DS_Store
+Thumbs.db
