@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace server.net.Models;
 
@@ -27,5 +28,6 @@ public class Consulta
     [Column("PET_ID")]
     public int PetId { get; set; }
 
-    public Pet Pet { get; set; } = null!;
+    [JsonIgnore]
+    public Pet? Pet { get; set; }
 }

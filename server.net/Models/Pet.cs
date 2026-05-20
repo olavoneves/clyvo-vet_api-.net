@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace server.net.Models;
 
@@ -27,7 +28,9 @@ public class Pet
     [Column("TUTOR_ID")]
     public int TutorId { get; set; }
 
-    public Tutor Tutor { get; set; } = null!;
+    [JsonIgnore]
+    public Tutor? Tutor { get; set; }
 
+    [JsonIgnore]
     public List<Consulta> Consultas { get; set; } = [];
 }

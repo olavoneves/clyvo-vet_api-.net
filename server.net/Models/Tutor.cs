@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace server.net.Models;
 
@@ -25,5 +26,6 @@ public class Tutor
     [Column("CPF")]
     public string? Cpf { get; set; }
 
+    [JsonIgnore]
     public List<Pet> Pets { get; set; } = [];
 }
