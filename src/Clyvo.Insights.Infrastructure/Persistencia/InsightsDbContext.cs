@@ -1,4 +1,5 @@
 using Clyvo.Insights.Domain.Metas;
+using Clyvo.Insights.Domain.Projecoes;
 using Clyvo.Insights.Infrastructure.Persistencia.Leitura;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +33,9 @@ public class InsightsDbContext : DbContext
 
     /// <summary>Metas de indicador em <c>INS_META_INDICADOR</c>. Escrita.</summary>
     public DbSet<MetaIndicador> Metas => Set<MetaIndicador>();
+
+    /// <summary>Série de apurações em <c>INS_SNAPSHOT_COORTE</c>. Escrita.</summary>
+    public DbSet<SnapshotCoorte> SnapshotsCoorte => Set<SnapshotCoorte>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

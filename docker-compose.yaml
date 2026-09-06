@@ -1,0 +1,53 @@
+# ============================================================
+#  CLYVO INSIGHTS — Docker Compose
+#
+#  Sobe só o que este serviço é dono. O Oracle e a API Java vêm do compose do
+#  clyvo-core e são alcançados pela rede que ele já cria — declarar um segundo
+#  Oracle aqui daria dois bancos com o mesmo schema e números divergentes na
+#  demo, que é exatamente o problema que este repositório passou a evitar.
+#
+#  Suba o core primeiro:
+#      cd ../../Clyvo-Vet.java/server && docker compose up -d
+#  Depois este:
+#      docker compose up -d
+# ============================================================
+
+services:
+
+  # --------------------------------------------------------
+  #  MONGODB — snapshots de coorte e log de consulta
+  #
+  #  O documento de snapshot muda de forma conforme o indicador e conforme as
+  #  metas que a clínica tenha definido. Versionar isso em coluna relacional
+  #  significaria migration a cada indicador novo.
+  # --------------------------------------------------------
+  mongo:
+    image: mongo:7
+    container_name: mongo-clyvoinsights
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=insights
+      - MONGO_INITDB_ROOT_PASSWORD=Insights2026
+      - MONGO_INITDB_DATABASE=clyvo_insights
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - clyvovet-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+
+# Rede criada pelo compose do clyvo-core. Externa de propósito: os dois serviços
+# precisam se enxergar, e quem a cria é quem sobe primeiro.
+networks:
+  clyvovet-network:
+    external: true
+    name: server_clyvovet-network
