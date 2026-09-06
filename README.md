@@ -1,73 +1,67 @@
-# Clyvo-Vet.net — API REST de Clínica Veterinária
+# Clyvo Insights — serviço .NET de leitura e análise
 
-API REST em ASP.NET Core 8 para gerenciamento de uma clínica veterinária. Permite cadastrar tutores, pets e consultas, com relacionamentos entre eles.
+Serviço ASP.NET Core 8 do ecossistema **Clyvo Vet**. Ele é o lado de *leitura*:
+responde quanto da receita da clínica é atribuível ao produto, e não à inércia
+dos tutores, comparando o grupo tratado com um grupo de controle de ~10% dos
+pets sorteado deterministicamente pelo motor.
 
-## Rotas
+O motor de protocolos clínicos vive no `clyvo-core` (Java 21 / Spring Boot sobre
+Oracle, com PL/SQL como implementação das regras). **Este serviço não escreve no
+domínio clínico** — ele lê as views que o core publica e governa por migration
+apenas as próprias tabelas, prefixadas `INS_`.
 
-### Tutores
+## Arquitetura
 
-| Método | Rota                    | Descrição                        | Resposta |
-|--------|-------------------------|----------------------------------|----------|
-| GET    | /tutores                | Lista todos os tutores           | 200      |
-| GET    | /tutores/{id}           | Busca tutor por ID               | 200/404  |
-| GET    | /tutores/{id}/pets      | Lista os pets de um tutor        | 200/404  |
-| POST   | /tutores                | Cadastra novo tutor              | 201/400  |
-| PUT    | /tutores/{id}           | Atualiza tutor                   | 204/400/404 |
-| DELETE | /tutores/{id}           | Remove tutor                     | 204/404  |
-
-### Pets
-
-| Método | Rota                    | Descrição                        | Resposta |
-|--------|-------------------------|----------------------------------|----------|
-| GET    | /pets                   | Lista todos os pets              | 200      |
-| GET    | /pets/{id}              | Busca pet por ID                 | 200/404  |
-| GET    | /pets/{id}/consultas    | Lista consultas de um pet        | 200/404  |
-| POST   | /pets                   | Cadastra novo pet                | 201/400  |
-| PUT    | /pets/{id}              | Atualiza pet                     | 204/400/404 |
-| DELETE | /pets/{id}              | Remove pet                       | 204/404  |
-
-### Consultas
-
-| Método | Rota                         | Descrição                              | Resposta |
-|--------|------------------------------|----------------------------------------|----------|
-| GET    | /consultas                   | Lista todas as consultas               | 200      |
-| GET    | /consultas/{id}              | Busca consulta por ID                  | 200/404  |
-| GET    | /consultas/tutor/{tutorId}   | Lista consultas de todos os pets de um tutor | 200/404 |
-| POST   | /consultas                   | Cadastra nova consulta                 | 201/400  |
-| PUT    | /consultas/{id}              | Atualiza consulta                      | 204/400/404 |
-| DELETE | /consultas/{id}              | Remove consulta                        | 204/404  |
-
-Swagger disponível em: `https://localhost:{porta}/swagger`
-
-## Instalação
-
-### Pré-requisitos
-
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8)
-- Acesso à instância Oracle FIAP
-
-### Configurar a connection string
-
-Edite `server.net/appsettings.json` e substitua o `User Id` pelo seu RM e o `Password` pela sua senha:
-
-```json
-"OracleConnection": "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=oracle.fiap.com.br)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=orcl)));User Id=RM000000;Password=000000;"
+```
+Clyvo.Insights.sln
+├─ src/
+│  ├─ Clyvo.Insights.Domain          regra de coorte, pura, sem dependência
+│  ├─ Clyvo.Insights.Application     casos de uso e portas de repositório
+│  ├─ Clyvo.Insights.Infrastructure  EF Core/Oracle e MongoDB
+│  └─ Clyvo.Insights.Api             controllers, JWT, Swagger, observabilidade
+└─ tests/
+   ├─ Clyvo.Insights.Tests.Unit
+   └─ Clyvo.Insights.Tests.Integration
 ```
 
-### Executar
+A dependência aponta para dentro: `Domain` não referencia ninguém, `Application`
+referencia só `Domain`, `Infrastructure` e `Api` referenciam `Application`.
+
+## Contrato de integração com o core
+
+| Objeto | Natureza | Quem é dono |
+|---|---|---|
+| `VW_CLV_PAINEL_COORTE` | view, leitura | core |
+| `VW_CLV_PAINEL_RECEITA` | view, leitura | core |
+| `INS_META_INDICADOR` | tabela, escrita | insights |
+| `INS_SNAPSHOT_COORTE` | tabela, escrita | insights |
+
+Migrations EF governam só o que este serviço é dono. As views entram como
+entidades sem chave (`HasNoKey().ToView(...)`), que o EF ignora ao gerar
+migration.
+
+## Executar
+
+Pré-requisitos: .NET 8 SDK (ou superior com targeting pack do net8.0) e uma
+instância Oracle com o schema do core aplicado.
 
 ```bash
-cd server.net
 dotnet restore
-dotnet run
+dotnet run --project src/Clyvo.Insights.Api
 ```
 
-### Migrations (validação do mapeamento EF Core)
+O perfil `http` do `launchSettings.json` já aponta para o container Oracle local
+(`localhost:1521/PETFLOWDB`). Para outro banco, sobrescreva a connection string
+por variável de ambiente:
 
 ```bash
-# Instalar ferramenta (apenas uma vez)
-dotnet tool install --global dotnet-ef --version 8.0.0
+ConnectionStrings__Oracle="User Id=RM000000;Password=...;Data Source=oracle.fiap.com.br:1521/orcl"
+```
 
-cd server.net
-dotnet ef migrations add InitialCreate
+Swagger em `http://localhost:5240/swagger`.
+
+## Testes
+
+```bash
+dotnet test
 ```
