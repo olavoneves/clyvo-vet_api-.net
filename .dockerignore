@@ -1,0 +1,20 @@
+# Saída de build da máquina local: copiar bin/obj para dentro da imagem
+# invalidaria o cache de restore e ainda arriscaria misturar artefato de
+# Windows com o publish do container.
+**/bin/
+**/obj/
+**/TestResults/
+
+.git/
+.github/
+.vs/
+.idea/
+
+# Segredos locais nunca entram na imagem.
+**/appsettings.Development.json
+**/appsettings.Local.json
+.env
+
+Dockerfile
+docker-compose.yaml
+README.md

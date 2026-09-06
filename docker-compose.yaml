@@ -1,15 +1,22 @@
 # ============================================================
 #  CLYVO INSIGHTS — Docker Compose
 #
-#  Sobe só o que este serviço é dono. O Oracle e a API Java vêm do compose do
-#  clyvo-core e são alcançados pela rede que ele já cria — declarar um segundo
-#  Oracle aqui daria dois bancos com o mesmo schema e números divergentes na
-#  demo, que é exatamente o problema que este repositório passou a evitar.
+#  Sobe o que este serviço é dono: o MongoDB das projeções e a própria API. O
+#  Oracle e a API Java vêm do compose do clyvo-core e são alcançados pela rede
+#  que ele já cria — declarar um segundo Oracle aqui daria dois bancos com o
+#  mesmo schema e números divergentes na demo, que é exatamente o problema que
+#  este repositório passou a evitar.
 #
 #  Suba o core primeiro:
 #      cd ../../Clyvo-Vet.java/server && docker compose up -d
 #  Depois este:
 #      docker compose up -d
+#
+#  As migrations INS_ não são aplicadas no start do container. Migration é passo
+#  de deploy, não de inicialização: um processo que altera schema ao subir
+#  aplica DDL toda vez que o orquestrador reinicia uma réplica.
+#      ConnectionStrings__Oracle="User Id=petflow;Password=PetFlow2026;Data Source=localhost:1521/PETFLOWDB" \
+#      dotnet ef database update -p src/Clyvo.Insights.Infrastructure -s src/Clyvo.Insights.Infrastructure
 # ============================================================
 
 services:
@@ -38,6 +45,40 @@ services:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 30s
       timeout: 10s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # --------------------------------------------------------
+  #  API .NET — Clyvo Insights
+  #
+  #  8081 para não disputar a 8080 com a API Java. Dentro da rede, o Oracle
+  #  atende em oracle-db, que é o nome do serviço no compose do core.
+  # --------------------------------------------------------
+  api-dotnet:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: api-clyvoinsights
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__Oracle=User Id=petflow;Password=PetFlow2026;Data Source=oracle-db:1521/PETFLOWDB
+      # A MESMA chave do core. O insights não emite token, só valida o que o
+      # core emitiu — chaves diferentes fazem todo token legítimo virar 401.
+      - Jwt__Secret=clyvovet-2026-local-dev-secret-key-docker!!
+      - Mongo__ConnectionString=mongodb://insights:Insights2026@mongo:27017/?authSource=admin
+      - Mongo__Database=clyvo_insights
+    ports:
+      - "8081:8081"
+    networks:
+      - clyvovet-network
+    depends_on:
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 5s
       retries: 5
       start_period: 20s
     restart: unless-stopped
