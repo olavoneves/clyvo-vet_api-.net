@@ -1,17 +1,42 @@
 using System.Reflection;
-using System.Text.Json.Serialization;
 using System.Text;
+using System.Text.Json.Serialization;
 using Clyvo.Insights.Api.Autenticacao;
 using Clyvo.Insights.Api.Middlewares;
+using Clyvo.Insights.Api.Observabilidade;
 using Clyvo.Insights.Api.Swagger;
 using Clyvo.Insights.Application;
 using Clyvo.Insights.Application.Abstracoes;
 using Clyvo.Insights.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+using Serilog.Formatting.Compact;
+
+const string NomeDoServico = "clyvo-insights";
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ----------------------------------------------------------------------------
+// Log estruturado
+//
+// JSON em vez de texto: o log deste serviço existe para ser consultado depois,
+// e "delta de 25,07 p.p. para a clínica 23" só vira filtro se IdClinica for um
+// campo, e não parte de uma frase. O enricher de trace liga cada linha ao span
+// do OpenTelemetry e ao traceId que o cliente recebeu no ProblemDetails.
+// ----------------------------------------------------------------------------
+builder.Host.UseSerilog((contexto, servicos, configuracao) => configuracao
+    .ReadFrom.Configuration(contexto.Configuration)
+    .ReadFrom.Services(servicos)
+    .Enrich.FromLogContext()
+    .Enrich.With(new EnriquecedorDeTrace())
+    .Enrich.WithProperty("Servico", NomeDoServico)
+    .WriteTo.Console(new CompactJsonFormatter()));
 
 // ----------------------------------------------------------------------------
 // Camadas
@@ -27,6 +52,31 @@ builder.Services.AddScoped<ITenantContext, TenantContextHttp>();
 // quebra silenciosa de contrato.
 builder.Services.AddControllers().AddJsonOptions(json =>
     json.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// ----------------------------------------------------------------------------
+// Tracing e métricas
+//
+// Exportador de console de propósito: um coletor que ninguém sobe é
+// infraestrutura morta no compose. Trocar por OTLP é uma linha, no dia em que
+// houver para onde exportar.
+// ----------------------------------------------------------------------------
+builder.Services.AddOpenTelemetry()
+    .ConfigureResource(recurso => recurso.AddService(
+        serviceName: NomeDoServico,
+        serviceVersion: Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0"))
+    .WithTracing(tracing => tracing
+        .AddAspNetCoreInstrumentation(opcoes =>
+            // Health check bate a cada poucos segundos e produziria mais span
+            // que requisição de verdade.
+            opcoes.Filter = contexto => !contexto.Request.Path.StartsWithSegments("/health"))
+        .AddHttpClientInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation(opcoes => opcoes.SetDbStatementForText = true)
+        .AddConsoleExporter())
+    .WithMetrics(metricas => metricas
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddConsoleExporter());
 
 // ----------------------------------------------------------------------------
 // Autenticação: mesma chave simétrica do clyvo-core
@@ -62,7 +112,7 @@ builder.Services
     });
 
 builder.Services.AddAuthorizationBuilder()
-    .SetDefaultPolicy(new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+    .SetDefaultPolicy(new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .RequireClaim(ClaimsDoCore.IdClinica)
         .Build());
@@ -122,6 +172,10 @@ var app = builder.Build();
 // Primeiro na pipeline: precisa enxergar a exceção de tudo que vem depois.
 app.UseMiddleware<ManipuladorGlobalDeExcecoes>();
 
+// Uma linha por requisição, com rota, status e duração, em vez das três que o
+// logger padrão do ASP.NET emite.
+app.UseSerilogRequestLogging();
+
 app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "Clyvo Insights API v1"));
 
@@ -129,6 +183,11 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Sem autenticação: quem sonda saúde é o orquestrador, que não tem token do
+// core. Nenhum dos dois expõe dado de clínica.
+app.MapHealthChecks("/health", RespostaDeSaude.Vivo).AllowAnonymous();
+app.MapHealthChecks("/health/ready", RespostaDeSaude.Pronto).AllowAnonymous();
 
 app.Run();
 

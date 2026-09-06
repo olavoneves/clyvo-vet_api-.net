@@ -2,6 +2,8 @@ using Clyvo.Insights.Application.Abstracoes;
 using Clyvo.Insights.Infrastructure.Mongo;
 using Clyvo.Insights.Infrastructure.Persistencia;
 using Clyvo.Insights.Infrastructure.Persistencia.Repositorios;
+using Clyvo.Insights.Infrastructure.Saude;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson.Serialization.Conventions;
@@ -28,6 +30,31 @@ public static class InjecaoDeDependencia
         services.AddScoped<IMetaIndicadorRepository, MetaIndicadorRepository>();
 
         services.AddMongo(configuration);
+        services.AddVerificacoesDeSaude();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registra as dependências externas no health check.
+    /// </summary>
+    /// <remarks>
+    /// A tag <c>ready</c> separa quem responde por prontidão de quem responde
+    /// por vida. <c>/health</c> não toca em banco nenhum: se ele desse
+    /// unhealthy por Oracle fora, o orquestrador reiniciaria um processo
+    /// saudável em vez de esperar o banco voltar.
+    /// </remarks>
+    private static IServiceCollection AddVerificacoesDeSaude(this IServiceCollection services)
+    {
+        services.AddHealthChecks()
+            // Self só responde por "o processo está de pé e a pipeline responde".
+            // É o que /health precisa: nenhuma dependência externa.
+            .AddCheck("self", () => HealthCheckResult.Healthy("Processo respondendo."),
+                tags: new[] { "live" })
+            .AddCheck<OracleHealthCheck>(
+                "oracle", HealthStatus.Unhealthy, tags: new[] { "ready", "db" })
+            .AddCheck<MongoHealthCheck>(
+                "mongo", HealthStatus.Degraded, tags: new[] { "ready", "db" });
 
         return services;
     }
