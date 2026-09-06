@@ -15,6 +15,10 @@ internal sealed class PainelCoorteViewConfiguration : IEntityTypeConfiguration<P
         builder.Property(v => v.ObrigacoesResolvidas).HasColumnName("QT_OBRIGACOES");
         builder.Property(v => v.ObrigacoesCumpridas).HasColumnName("QT_CUMPRIDAS");
         builder.Property(v => v.PetsDistintos).HasColumnName("QT_PETS");
-        builder.Property(v => v.TicketMedio).HasColumnName("VL_TICKET_MEDIO");
+        // A view devolve AVG(nr_valor) arredondado a 2 casas sobre NUMBER(10,2).
+        // Sem precisão explícita o EF avisa que pode truncar em silêncio.
+        builder.Property(v => v.TicketMedio)
+            .HasColumnName("VL_TICKET_MEDIO")
+            .HasPrecision(12, 2);
     }
 }

@@ -1,7 +1,6 @@
 using Clyvo.Insights.Application.Abstracoes;
 using Clyvo.Insights.Infrastructure.Persistencia;
 using Clyvo.Insights.Infrastructure.Persistencia.Repositorios;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,9 +17,10 @@ public static class InjecaoDeDependencia
         IConfiguration configuration)
     {
         services.AddDbContext<InsightsDbContext>(options =>
-            options.UseOracle(configuration.GetConnectionString(ConnectionStringOracle)));
+            options.ConfigurarOracle(configuration.GetConnectionString(ConnectionStringOracle)));
 
         services.AddScoped<ICoorteReadRepository, CoorteReadRepository>();
+        services.AddScoped<IMetaIndicadorRepository, MetaIndicadorRepository>();
 
         return services;
     }

@@ -1,3 +1,4 @@
+using Clyvo.Insights.Domain.Metas;
 using Clyvo.Insights.Infrastructure.Persistencia.Leitura;
 using Microsoft.EntityFrameworkCore;
 
@@ -25,6 +26,9 @@ public class InsightsDbContext : DbContext
 
     /// <summary>Coortes por clínica e grupo, vindas de <c>VW_CLV_PAINEL_COORTE</c>.</summary>
     public DbSet<PainelCoorteView> PainelCoorte => Set<PainelCoorteView>();
+
+    /// <summary>Metas de indicador em <c>INS_META_INDICADOR</c>. Escrita.</summary>
+    public DbSet<MetaIndicador> Metas => Set<MetaIndicador>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
