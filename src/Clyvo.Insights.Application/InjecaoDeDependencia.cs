@@ -1,5 +1,6 @@
 using Clyvo.Insights.Application.Coortes;
 using Clyvo.Insights.Application.Metas;
+using Clyvo.Insights.Application.Obrigacoes;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Clyvo.Insights.Application;
@@ -10,6 +11,7 @@ public static class InjecaoDeDependencia
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
         services.AddScoped<ObterAnaliseCoorte>();
+        services.AddScoped<ObterResumoObrigacoes>();
 
         services.AddScoped<CriarMetaIndicador>();
         services.AddScoped<ListarMetasIndicador>();
