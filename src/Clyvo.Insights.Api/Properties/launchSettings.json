@@ -9,7 +9,8 @@
       "applicationUrl": "http://localhost:5240",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__Oracle": "User Id=petflow;Password=PetFlow2026;Data Source=localhost:1521/PETFLOWDB"
+        "ConnectionStrings__Oracle": "User Id=petflow;Password=PetFlow2026;Data Source=localhost:1521/PETFLOWDB",
+        "Jwt__Secret": "clyvovet-2026-local-dev-secret-key-docker!!"
       }
     }
   }
