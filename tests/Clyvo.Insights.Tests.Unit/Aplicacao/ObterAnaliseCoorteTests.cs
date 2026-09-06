@@ -2,6 +2,9 @@ using Clyvo.Insights.Application.Abstracoes;
 using Clyvo.Insights.Application.Coortes;
 using Clyvo.Insights.Domain.Coortes;
 using Clyvo.Insights.Domain.Metas;
+using Clyvo.Insights.Application.Projecoes;
+using Clyvo.Insights.Domain.Projecoes;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace Clyvo.Insights.Tests.Unit.Aplicacao;
@@ -17,6 +20,7 @@ public class ObterAnaliseCoorteTests
 
     private readonly Mock<ICoorteReadRepository> _repositorio = new(MockBehavior.Strict);
     private readonly Mock<IMetaIndicadorRepository> _metas = new();
+    private readonly Mock<IProjecaoRepository> _projecoes = new();
     private readonly Mock<ITenantContext> _tenant = new();
 
     public ObterAnaliseCoorteTests()
@@ -28,7 +32,12 @@ public class ObterAnaliseCoorteTests
             .ReturnsAsync(Array.Empty<MetaIndicador>());
     }
 
-    private ObterAnaliseCoorte CasoDeUso() => new(_repositorio.Object, _metas.Object, _tenant.Object);
+    private ObterAnaliseCoorte CasoDeUso() => new(
+        _repositorio.Object,
+        _metas.Object,
+        _projecoes.Object,
+        _tenant.Object,
+        NullLogger<ObterAnaliseCoorte>.Instance);
 
     private void ConfigurarMetas(params MetaIndicador[] metas) =>
         _metas
@@ -220,5 +229,106 @@ public class ObterAnaliseCoorteTests
         _metas.Verify(
             m => m.ListarDaClinicaAsync(It.IsAny<long>(), It.IsAny<CancellationToken>()),
             Times.Never);
+    }
+
+    [Fact]
+    public async Task Registra_a_consulta_e_o_snapshot_do_dia()
+    {
+        // Arrange
+        ConfigurarLeitura(IdClinicaDoToken,
+            new LinhaCoorte(GrupoCoorte.Tratado, 1000, 600, 100, 200m),
+            new LinhaCoorte(GrupoCoorte.Controle, 100, 40, 10, 200m));
+
+        _projecoes
+            .Setup(p => p.ObterSnapshotDoDiaAsync(IdClinicaDoToken, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((SnapshotCoorte?)null);
+
+        SnapshotCoorte? gravado = null;
+        _projecoes
+            .Setup(p => p.RegistrarSnapshotAsync(It.IsAny<SnapshotCoorte>(), It.IsAny<AnaliseCoorteDto>(), It.IsAny<CancellationToken>()))
+            .Callback<SnapshotCoorte, AnaliseCoorteDto, CancellationToken>((s, _, _) => gravado = s)
+            .Returns(Task.CompletedTask);
+
+        // Act
+        var dto = await CasoDeUso().ExecutarAsync();
+
+        // Assert
+        Assert.NotNull(gravado);
+        Assert.Equal(IdClinicaDoToken, gravado!.IdClinica);
+        Assert.Equal(dto.DeltaPontosPercentuais, gravado.DeltaPontosPercentuais);
+        Assert.Equal(1000, gravado.ObrigacoesResolvidasTratado);
+        _projecoes.Verify(
+            p => p.RegistrarConsultaAsync(It.Is<RegistroDeConsulta>(r => r.IdClinica == IdClinicaDoToken && r.Disponivel), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Reapura_o_snapshot_do_dia_em_vez_de_criar_outro_ponto()
+    {
+        // Arrange
+        ConfigurarLeitura(IdClinicaDoToken,
+            new LinhaCoorte(GrupoCoorte.Tratado, 1000, 600, 100, 200m),
+            new LinhaCoorte(GrupoCoorte.Controle, 100, 40, 10, 200m));
+
+        var jaExistente = SnapshotCoorte.De(
+            IdClinicaDoToken,
+            AnaliseCoorte.Calcular(
+                Coorte.Criar(GrupoCoorte.Tratado, 900, 500, 90),
+                Coorte.Criar(GrupoCoorte.Controle, 90, 40, 9),
+                200m),
+            DateOnly.FromDateTime(DateTime.UtcNow));
+
+        _projecoes
+            .Setup(p => p.ObterSnapshotDoDiaAsync(IdClinicaDoToken, It.IsAny<DateOnly>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(jaExistente);
+
+        // Act
+        var dto = await CasoDeUso().ExecutarAsync();
+
+        // Assert
+        Assert.Equal(dto.DeltaPontosPercentuais, jaExistente.DeltaPontosPercentuais);
+        Assert.Equal(1000, jaExistente.ObrigacoesResolvidasTratado);
+        _projecoes.Verify(
+            p => p.RegistrarSnapshotAsync(jaExistente, It.IsAny<AnaliseCoorteDto>(), It.IsAny<CancellationToken>()),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task Analise_indisponivel_registra_a_consulta_mas_nao_grava_snapshot()
+    {
+        // Arrange
+        ConfigurarLeitura(IdClinicaDoToken);
+
+        // Act
+        var dto = await CasoDeUso().ExecutarAsync();
+
+        // Assert
+        Assert.False(dto.Disponivel);
+        _projecoes.Verify(
+            p => p.RegistrarConsultaAsync(It.Is<RegistroDeConsulta>(r => !r.Disponivel), It.IsAny<CancellationToken>()),
+            Times.Once);
+        _projecoes.Verify(
+            p => p.RegistrarSnapshotAsync(It.IsAny<SnapshotCoorte>(), It.IsAny<AnaliseCoorteDto>(), It.IsAny<CancellationToken>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Mongo_fora_do_ar_nao_derruba_a_analise()
+    {
+        // Arrange
+        ConfigurarLeitura(IdClinicaDoToken,
+            new LinhaCoorte(GrupoCoorte.Tratado, 1000, 600, 100, 200m),
+            new LinhaCoorte(GrupoCoorte.Controle, 100, 40, 10, 200m));
+
+        _projecoes
+            .Setup(p => p.RegistrarConsultaAsync(It.IsAny<RegistroDeConsulta>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new TimeoutException("servidor de projeção indisponível"));
+
+        // Act
+        var dto = await CasoDeUso().ExecutarAsync();
+
+        // Assert
+        Assert.True(dto.Disponivel);
+        Assert.Equal(20.00m, dto.DeltaPontosPercentuais);
     }
 }
