@@ -27,6 +27,9 @@ public class InsightsDbContext : DbContext
     /// <summary>Coortes por clínica e grupo, vindas de <c>VW_CLV_PAINEL_COORTE</c>.</summary>
     public DbSet<PainelCoorteView> PainelCoorte => Set<PainelCoorteView>();
 
+    /// <summary>Funil mensal de obrigações, vindo de <c>VW_CLV_PAINEL_RECEITA</c>.</summary>
+    public DbSet<PainelReceitaView> PainelReceita => Set<PainelReceitaView>();
+
     /// <summary>Metas de indicador em <c>INS_META_INDICADOR</c>. Escrita.</summary>
     public DbSet<MetaIndicador> Metas => Set<MetaIndicador>();
 
