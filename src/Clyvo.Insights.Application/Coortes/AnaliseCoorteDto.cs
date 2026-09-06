@@ -1,3 +1,5 @@
+using Clyvo.Insights.Application.Metas;
+
 namespace Clyvo.Insights.Application.Coortes;
 
 /// <summary>
@@ -38,6 +40,11 @@ public sealed record CoorteDto(
 /// <param name="TicketMedio">Ticket médio apurado das consultas realizadas da clínica.</param>
 /// <param name="Tratado">Coorte dos pets perseguidos pelo motor.</param>
 /// <param name="Controle">Coorte de controle, o contrafactual.</param>
+/// <param name="Metas">
+/// Metas da clínica confrontadas com o que a análise apurou. Vem vazia quando a
+/// análise está indisponível — sinalizar meta não atingida contra números
+/// zerados por falta de contrafactual seria alarme falso.
+/// </param>
 public sealed record AnaliseCoorteDto(
     long IdClinica,
     bool Disponivel,
@@ -48,4 +55,5 @@ public sealed record AnaliseCoorteDto(
     bool ReceitaEstimavel,
     decimal? TicketMedio,
     CoorteDto Tratado,
-    CoorteDto Controle);
+    CoorteDto Controle,
+    IReadOnlyList<MetaAvaliadaDto> Metas);

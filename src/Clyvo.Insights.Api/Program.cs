@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using System.Text;
 using Clyvo.Insights.Api.Autenticacao;
 using Clyvo.Insights.Api.Middlewares;
@@ -21,7 +22,11 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, TenantContextHttp>();
 
-builder.Services.AddControllers();
+// Enum entra e sai como nome. Ordinal em JSON obriga o cliente a saber que 1 é
+// TaxaCumprimento, e transforma inserir um valor novo no meio do enum numa
+// quebra silenciosa de contrato.
+builder.Services.AddControllers().AddJsonOptions(json =>
+    json.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // ----------------------------------------------------------------------------
 // Autenticação: mesma chave simétrica do clyvo-core

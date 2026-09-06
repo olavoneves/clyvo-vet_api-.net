@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Clyvo.Insights.Application.Excecoes;
 using Clyvo.Insights.Domain.Excecoes;
 using Microsoft.AspNetCore.Mvc;
 
@@ -83,6 +84,12 @@ public sealed class ManipuladorGlobalDeExcecoes
     {
         RegraDeDominioException regra =>
             (StatusCodes.Status400BadRequest, "Requisição inválida", regra.Message),
+
+        RecursoNaoEncontradoException naoEncontrado =>
+            (StatusCodes.Status404NotFound, "Recurso não encontrado", naoEncontrado.Message),
+
+        ConflitoDeRecursoException conflito =>
+            (StatusCodes.Status409Conflict, "Conflito com o estado atual", conflito.Message),
 
         _ => (StatusCodes.Status500InternalServerError, "Erro interno",
               "A requisição não pôde ser concluída. Consulte o traceId no log do serviço.")

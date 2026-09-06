@@ -1,4 +1,5 @@
 using Clyvo.Insights.Application.Coortes;
+using Clyvo.Insights.Application.Metas;
 using Clyvo.Insights.Domain.Coortes;
 
 namespace Clyvo.Insights.Application.Mapeamentos;
@@ -44,7 +45,8 @@ public static class CoorteMapeamentos
             analise.ReceitaEstimavel,
             analise.TicketMedio,
             analise.Tratado.ParaDto(),
-            analise.Controle.ParaDto());
+            analise.Controle.ParaDto(),
+            Array.Empty<MetaAvaliadaDto>());
 
     private static CoorteDto ParaDto(this Coorte coorte) =>
         new(coorte.Grupo.ToString().ToUpperInvariant(),
