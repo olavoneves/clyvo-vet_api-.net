@@ -7,14 +7,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Clyvo.Insights.Infrastructure.Persistencia.Repositorios;
 
-internal sealed class CoorteReadRepository : ICoorteReadRepository
+internal sealed class LeituraDoCoreRepository : ILeituraDoCoreRepository
 {
     private const string GrupoTratado = "TRATADO";
     private const string GrupoControle = "CONTROLE";
 
     private readonly InsightsDbContext _contexto;
 
-    public CoorteReadRepository(InsightsDbContext contexto)
+    public LeituraDoCoreRepository(InsightsDbContext contexto)
     {
         _contexto = contexto;
     }

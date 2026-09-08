@@ -53,11 +53,11 @@ public sealed class FabricaDaApi : WebApplicationFactory<Program>
 
         builder.ConfigureTestServices(services =>
         {
-            services.RemoveAll<ICoorteReadRepository>();
+            services.RemoveAll<ILeituraDoCoreRepository>();
             services.RemoveAll<IMetaIndicadorRepository>();
             services.RemoveAll<IProjecaoRepository>();
 
-            services.AddSingleton<ICoorteReadRepository, CoorteReadRepositoryEmMemoria>();
+            services.AddSingleton<ILeituraDoCoreRepository, LeituraDoCoreRepositoryEmMemoria>();
             services.AddSingleton<IMetaIndicadorRepository, MetaIndicadorRepositoryEmMemoria>();
             services.AddSingleton<IProjecaoRepository>(Projecoes);
         });

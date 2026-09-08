@@ -26,7 +26,7 @@ public static class InjecaoDeDependencia
         services.AddDbContext<InsightsDbContext>(options =>
             options.ConfigurarOracle(configuration.GetConnectionString(ConnectionStringOracle)));
 
-        services.AddScoped<ICoorteReadRepository, CoorteReadRepository>();
+        services.AddScoped<ILeituraDoCoreRepository, LeituraDoCoreRepository>();
         services.AddScoped<IMetaIndicadorRepository, MetaIndicadorRepository>();
 
         services.AddMongo(configuration);

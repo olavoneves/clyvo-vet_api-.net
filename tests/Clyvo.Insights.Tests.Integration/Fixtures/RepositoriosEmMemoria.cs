@@ -18,7 +18,7 @@ namespace Clyvo.Insights.Tests.Integration.Fixtures;
 /// contra o container — ao custo de a suíte só rodar em máquina com o banco de
 /// pé, e de o resultado depender de um seed que muda sozinho.
 /// </remarks>
-public sealed class CoorteReadRepositoryEmMemoria : ICoorteReadRepository
+public sealed class LeituraDoCoreRepositoryEmMemoria : ILeituraDoCoreRepository
 {
     private readonly Dictionary<long, IReadOnlyList<LinhaCoorte>> _coortes = new()
     {

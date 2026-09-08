@@ -8,10 +8,10 @@ namespace Clyvo.Insights.Application.Obrigacoes;
 /// </summary>
 public sealed class ObterResumoObrigacoes
 {
-    private readonly ICoorteReadRepository _repositorio;
+    private readonly ILeituraDoCoreRepository _repositorio;
     private readonly ITenantContext _tenant;
 
-    public ObterResumoObrigacoes(ICoorteReadRepository repositorio, ITenantContext tenant)
+    public ObterResumoObrigacoes(ILeituraDoCoreRepository repositorio, ITenantContext tenant)
     {
         _repositorio = repositorio;
         _tenant = tenant;

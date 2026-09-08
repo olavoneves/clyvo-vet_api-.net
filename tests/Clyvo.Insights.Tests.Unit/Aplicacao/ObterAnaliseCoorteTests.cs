@@ -18,7 +18,7 @@ public class ObterAnaliseCoorteTests
 {
     private const long IdClinicaDoToken = 23;
 
-    private readonly Mock<ICoorteReadRepository> _repositorio = new(MockBehavior.Strict);
+    private readonly Mock<ILeituraDoCoreRepository> _repositorio = new(MockBehavior.Strict);
     private readonly Mock<IMetaIndicadorRepository> _metas = new();
     private readonly Mock<IProjecaoRepository> _projecoes = new();
     private readonly Mock<ITenantContext> _tenant = new();

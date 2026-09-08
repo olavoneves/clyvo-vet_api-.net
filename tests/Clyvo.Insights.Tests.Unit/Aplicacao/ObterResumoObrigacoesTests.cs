@@ -8,7 +8,7 @@ public class ObterResumoObrigacoesTests
 {
     private const long IdClinicaDoToken = 23;
 
-    private readonly Mock<ICoorteReadRepository> _repositorio = new(MockBehavior.Strict);
+    private readonly Mock<ILeituraDoCoreRepository> _repositorio = new(MockBehavior.Strict);
     private readonly Mock<ITenantContext> _tenant = new();
 
     public ObterResumoObrigacoesTests()
