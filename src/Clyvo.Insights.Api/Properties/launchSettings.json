@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5240",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__Oracle": "User Id=petflow;Password=PetFlow2026;Data Source=localhost:1521/PETFLOWDB",
+        "Jwt__Secret": "clyvovet-2026-local-dev-secret-key-docker!!",
+        "Mongo__ConnectionString": "mongodb://insights:Insights2026@localhost:27017/?authSource=admin"
+      }
+    }
+  }
+}

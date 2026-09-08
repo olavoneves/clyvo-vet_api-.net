@@ -4,12 +4,20 @@ obj/
 *.user
 *.suo
 
-## Visual Studio
+## Visual Studio / Rider
 .vs/
+.idea/
 *.vsidx
 
-## EF Core secrets (não versionar credenciais)
+## Segredos locais — connection string e chave JWT nunca sao versionadas
 **/appsettings.Development.json
+**/appsettings.Local.json
+.env
+
+## Resultados de teste
+TestResults/
+*.trx
+coverage.*.xml
 
 ## OS
 .DS_Store
