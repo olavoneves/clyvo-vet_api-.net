@@ -6,7 +6,8 @@ using Clyvo.Insights.Tests.Integration.Fixtures;
 
 namespace Clyvo.Insights.Tests.Integration;
 
-public class CoorteEndpointTests : IClassFixture<FabricaDaApi>
+[Collection(ColecaoDaApi.Nome)]
+public class CoorteEndpointTests
 {
     private const string Rota = "/api/insights/coorte";
 
@@ -18,7 +19,7 @@ public class CoorteEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task Sem_token_devolve_401()
+    public async Task ObterCoorte_SemToken_Retorna401()
     {
         // Arrange
         var cliente = _api.CreateClient();
@@ -31,7 +32,7 @@ public class CoorteEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task Token_assinado_com_outra_chave_devolve_401()
+    public async Task ObterCoorte_ComTokenDeOutraChave_Retorna401()
     {
         // Arrange
         var cliente = _api.CreateClient();
@@ -49,7 +50,7 @@ public class CoorteEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task Token_sem_o_claim_de_clinica_devolve_403()
+    public async Task ObterCoorte_ComTokenSemClaimDeClinica_Retorna403()
     {
         // Arrange
         var cliente = _api.CreateClient();
@@ -64,7 +65,7 @@ public class CoorteEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task Token_valido_devolve_200_e_a_analise_da_clinica()
+    public async Task ObterCoorte_ComTokenValido_Retorna200ComAAnaliseDaClinica()
     {
         // Arrange
         var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
@@ -87,7 +88,7 @@ public class CoorteEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task A_aritmetica_da_resposta_fecha_com_as_proprias_taxas()
+    public async Task ObterCoorte_ComAnaliseDisponivel_RetornaAritmeticaConsistenteComAsTaxas()
     {
         // Arrange
         var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
@@ -111,7 +112,7 @@ public class CoorteEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task Token_de_outra_clinica_devolve_os_dados_daquela_clinica_e_nunca_os_desta()
+    public async Task ObterCoorte_ComTokenDeOutraClinica_RetornaDadosDaquelaClinica()
     {
         // Arrange
         var daClinica = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
@@ -132,7 +133,7 @@ public class CoorteEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task Clinica_sem_coorte_devolve_200_com_analise_indisponivel()
+    public async Task ObterCoorte_ComClinicaSemCoorte_Retorna200ComAnaliseIndisponivel()
     {
         // Arrange
         var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaSemDados);
@@ -150,7 +151,7 @@ public class CoorteEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task A_consulta_deixa_registro_na_projecao()
+    public async Task ObterCoorte_ComTokenValido_RegistraConsultaESnapshotNaProjecao()
     {
         // Arrange
         var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);

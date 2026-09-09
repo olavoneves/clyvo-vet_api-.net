@@ -26,11 +26,11 @@ public static class InjecaoDeDependencia
         services.AddDbContext<InsightsDbContext>(options =>
             options.ConfigurarOracle(configuration.GetConnectionString(ConnectionStringOracle)));
 
-        services.AddScoped<ICoorteReadRepository, CoorteReadRepository>();
+        services.AddScoped<ILeituraDoCoreRepository, LeituraDoCoreRepository>();
         services.AddScoped<IMetaIndicadorRepository, MetaIndicadorRepository>();
 
         services.AddMongo(configuration);
-        services.AddVerificacoesDeSaude();
+        services.AddVerificacoesDeSaude(configuration);
 
         return services;
     }
@@ -40,12 +40,33 @@ public static class InjecaoDeDependencia
     /// </summary>
     /// <remarks>
     /// A tag <c>ready</c> separa quem responde por prontidão de quem responde
-    /// por vida. <c>/health</c> não toca em banco nenhum: se ele desse
+    /// por vida. <c>/health</c> não toca em banco nem em rede: se ele desse
     /// unhealthy por Oracle fora, o orquestrador reiniciaria um processo
     /// saudável em vez de esperar o banco voltar.
+    ///
+    /// Entre as dependências de prontidão, só o Oracle derruba o serviço. Mongo
+    /// e clyvo-core degradam: o primeiro recebe apenas projeção de saída, e o
+    /// segundo não está no caminho de nenhuma resposta — o token é validado
+    /// localmente com a chave compartilhada.
     /// </remarks>
-    private static IServiceCollection AddVerificacoesDeSaude(this IServiceCollection services)
+    private static IServiceCollection AddVerificacoesDeSaude(
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
+        var opcoesCore = configuration.GetSection(OpcoesCore.Secao).Get<OpcoesCore>() ?? new OpcoesCore();
+
+        services.AddSingleton(opcoesCore);
+
+        services.AddHttpClient(CoreHealthCheck.NomeDoCliente, cliente =>
+        {
+            if (!string.IsNullOrWhiteSpace(opcoesCore.BaseUrl))
+            {
+                cliente.BaseAddress = new Uri(opcoesCore.BaseUrl);
+            }
+
+            cliente.Timeout = TimeSpan.FromSeconds(opcoesCore.TimeoutSegundos);
+        });
+
         services.AddHealthChecks()
             // Self só responde por "o processo está de pé e a pipeline responde".
             // É o que /health precisa: nenhuma dependência externa.
@@ -54,7 +75,9 @@ public static class InjecaoDeDependencia
             .AddCheck<OracleHealthCheck>(
                 "oracle", HealthStatus.Unhealthy, tags: new[] { "ready", "db" })
             .AddCheck<MongoHealthCheck>(
-                "mongo", HealthStatus.Degraded, tags: new[] { "ready", "db" });
+                "mongo", HealthStatus.Degraded, tags: new[] { "ready", "db" })
+            .AddCheck<CoreHealthCheck>(
+                "clyvo-core", HealthStatus.Degraded, tags: new[] { "ready", "externo" });
 
         return services;
     }

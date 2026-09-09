@@ -6,7 +6,7 @@ namespace Clyvo.Insights.Tests.Unit.Dominio;
 public class CoorteTests
 {
     [Fact]
-    public void TaxaCumprimento_e_derivada_das_contagens()
+    public void TaxaCumprimento_ComCumpridasEResolvidas_RetornaFracaoDerivada()
     {
         // Arrange
         const int resolvidas = 2715;
@@ -21,7 +21,7 @@ public class CoorteTests
     }
 
     [Fact]
-    public void Coorte_sem_obrigacao_resolvida_e_vazia_e_nao_divide_por_zero()
+    public void TaxaCumprimento_SemObrigacaoResolvida_RetornaZeroSemDividirPorZero()
     {
         // Arrange
         const int semDenominador = 0;
@@ -35,7 +35,7 @@ public class CoorteTests
     }
 
     [Fact]
-    public void Taxa_de_cem_por_cento_vale_um_inteiro()
+    public void TaxaCumprimento_ComTodasCumpridas_RetornaUmInteiro()
     {
         // Arrange
         const int todas = 40;
@@ -48,7 +48,7 @@ public class CoorteTests
     }
 
     [Fact]
-    public void Cumpridas_acima_de_resolvidas_e_erro_de_quem_chamou()
+    public void Criar_ComCumpridasAcimaDeResolvidas_LancaRegraDeDominio()
     {
         // Arrange
         const int resolvidas = 10;
@@ -67,7 +67,7 @@ public class CoorteTests
     [InlineData(-1, 0, 0)]
     [InlineData(10, -1, 0)]
     [InlineData(10, 5, -1)]
-    public void Contagem_negativa_e_erro_de_quem_chamou(int resolvidas, int cumpridas, int pets)
+    public void Criar_ComContagemNegativa_LancaRegraDeDominio(int resolvidas, int cumpridas, int pets)
     {
         // Arrange
         const GrupoCoorte grupo = GrupoCoorte.Tratado;

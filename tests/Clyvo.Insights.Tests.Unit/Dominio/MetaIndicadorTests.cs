@@ -8,7 +8,7 @@ public class MetaIndicadorTests
     private static readonly DateTime Agora = new(2026, 9, 6, 12, 0, 0, DateTimeKind.Utc);
 
     [Fact]
-    public void Meta_nasce_com_as_duas_datas_iguais()
+    public void Criar_ComDadosValidos_NasceComAsDuasDatasIguais()
     {
         // Arrange
         const decimal limiar = 55m;
@@ -25,7 +25,7 @@ public class MetaIndicadorTests
     }
 
     [Fact]
-    public void Alterar_limiar_move_o_piso_e_carimba_a_atualizacao()
+    public void AlterarLimiar_ComLimiarValido_MoveOPisoECarimbaAAtualizacao()
     {
         // Arrange
         var meta = MetaIndicador.Criar(23, IndicadorMonitorado.TaxaCumprimento, 55m, Agora);
@@ -41,7 +41,7 @@ public class MetaIndicadorTests
     }
 
     [Fact]
-    public void Valor_apurado_abaixo_do_piso_e_sinalizado()
+    public void EstaAbaixoDoLimiar_ComValorAbaixoDoPiso_RetornaVerdadeiro()
     {
         // Arrange
         var meta = MetaIndicador.Criar(23, IndicadorMonitorado.TaxaCumprimento, 55m, Agora);
@@ -54,7 +54,7 @@ public class MetaIndicadorTests
     }
 
     [Fact]
-    public void Valor_apurado_exatamente_no_piso_atinge_a_meta()
+    public void EstaAbaixoDoLimiar_ComValorExatamenteNoPiso_RetornaFalso()
     {
         // Arrange
         var meta = MetaIndicador.Criar(23, IndicadorMonitorado.TaxaCumprimento, 55m, Agora);
@@ -69,7 +69,7 @@ public class MetaIndicadorTests
     [Theory]
     [InlineData(-0.01)]
     [InlineData(100.01)]
-    public void Limiar_fora_da_faixa_de_zero_a_cem_e_erro_de_quem_chamou(decimal limiar)
+    public void Criar_ComLimiarForaDaFaixa_LancaRegraDeDominio(decimal limiar)
     {
         // Arrange
         const long idClinica = 23;
@@ -83,7 +83,7 @@ public class MetaIndicadorTests
     }
 
     [Fact]
-    public void Alterar_para_limiar_fora_da_faixa_nao_muda_a_meta()
+    public void AlterarLimiar_ComLimiarForaDaFaixa_LancaSemAlterarAMeta()
     {
         // Arrange
         var meta = MetaIndicador.Criar(23, IndicadorMonitorado.TaxaCumprimento, 55m, Agora);
@@ -98,7 +98,7 @@ public class MetaIndicadorTests
     }
 
     [Fact]
-    public void Indicador_fora_do_enum_e_erro_de_quem_chamou()
+    public void Criar_ComIndicadorForaDoEnum_LancaRegraDeDominio()
     {
         // Arrange
         const IndicadorMonitorado inexistente = (IndicadorMonitorado)99;
@@ -111,7 +111,7 @@ public class MetaIndicadorTests
     }
 
     [Fact]
-    public void Clinica_invalida_e_erro_de_quem_chamou()
+    public void Criar_ComClinicaInvalida_LancaRegraDeDominio()
     {
         // Arrange
         const long semClinica = 0;

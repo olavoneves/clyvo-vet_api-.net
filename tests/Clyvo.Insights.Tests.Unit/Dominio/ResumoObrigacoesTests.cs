@@ -6,7 +6,7 @@ namespace Clyvo.Insights.Tests.Unit.Dominio;
 public class ResumoObrigacoesTests
 {
     [Fact]
-    public void Funil_cumulativo_vira_baldes_exclusivos_que_somam_o_total()
+    public void APartirDoFunil_ComFunilCumulativo_RetornaBaldesExclusivosQueSomamOTotal()
     {
         // Arrange — 100 vencidas: 80 notificadas, 60 responderam, 45 marcaram,
         // 30 vieram; 15 perdidas; 5 venceram sem notificação ou canceladas.
@@ -35,7 +35,7 @@ public class ResumoObrigacoesTests
     }
 
     [Fact]
-    public void Funil_sem_estado_intermediario_concentra_tudo_em_cumpridas_e_perdidas()
+    public void APartirDoFunil_SemEstadoIntermediario_ConcentraEmCumpridasEPerdidas()
     {
         // Arrange — a forma do banco de demonstração: todo mundo que venceu já
         // terminou, e nenhuma obrigação parou no meio do caminho.
@@ -60,7 +60,7 @@ public class ResumoObrigacoesTests
     }
 
     [Fact]
-    public void Clinica_sem_obrigacao_vencida_da_resumo_zerado()
+    public void APartirDoFunil_SemObrigacaoVencida_RetornaResumoZerado()
     {
         // Arrange
         const int nenhuma = 0;
@@ -77,7 +77,7 @@ public class ResumoObrigacoesTests
     [InlineData(50, 60, 40, 30)]   // respondida acima de notificada
     [InlineData(80, 40, 50, 30)]   // agendada acima de respondida
     [InlineData(80, 60, 40, 50)]   // cumprida acima de agendada
-    public void Degrau_fora_de_ordem_e_erro_de_quem_chamou(
+    public void APartirDoFunil_ComDegrauForaDeOrdem_LancaRegraDeDominio(
         int notificada, int respondida, int agendada, int cumpridas)
     {
         // Arrange
@@ -93,7 +93,7 @@ public class ResumoObrigacoesTests
     }
 
     [Fact]
-    public void Notificadas_mais_perdidas_acima_do_total_e_erro_de_quem_chamou()
+    public void APartirDoFunil_ComNotificadasMaisPerdidasAcimaDoTotal_LancaRegraDeDominio()
     {
         // Arrange — os dois conjuntos são disjuntos e não cabem no total
         const int total = 100;
@@ -107,7 +107,7 @@ public class ResumoObrigacoesTests
     }
 
     [Fact]
-    public void Contagem_negativa_e_erro_de_quem_chamou()
+    public void APartirDoFunil_ComContagemNegativa_LancaRegraDeDominio()
     {
         // Arrange
         const int totalNegativo = -1;
