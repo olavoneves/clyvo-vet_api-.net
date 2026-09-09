@@ -19,7 +19,7 @@ public class AnaliseCoorteTests
     private const decimal TicketCanonico = 203.73m;
 
     [Fact]
-    public void Delta_positivo_vira_consultas_atribuiveis_e_receita()
+    public void Calcular_ComDeltaPositivo_RetornaConsultasAtribuiveisEReceita()
     {
         // Arrange
         var tratado = TratadoCanonico();
@@ -37,7 +37,7 @@ public class AnaliseCoorteTests
     }
 
     [Fact]
-    public void Consultas_atribuiveis_sao_as_resolvidas_do_tratado_vezes_o_delta()
+    public void Calcular_ComDeltaConhecido_MultiplicaResolvidasDoTratadoPeloDelta()
     {
         // Arrange
         var tratado = Coorte.Criar(GrupoCoorte.Tratado, 1000, 600, 100);   // 60%
@@ -53,7 +53,7 @@ public class AnaliseCoorteTests
     }
 
     [Fact]
-    public void Coorte_de_controle_vazia_devolve_analise_indisponivel_em_vez_de_dividir_por_zero()
+    public void Calcular_ComCoorteDeControleVazia_RetornaAnaliseIndisponivel()
     {
         // Arrange
         var tratado = TratadoCanonico();
@@ -72,7 +72,7 @@ public class AnaliseCoorteTests
     }
 
     [Fact]
-    public void Coorte_tratada_vazia_tambem_devolve_analise_indisponivel()
+    public void Calcular_ComCoorteTratadaVazia_RetornaAnaliseIndisponivel()
     {
         // Arrange
         var tratadoSemDados = Coorte.Criar(GrupoCoorte.Tratado, 0, 0, 0);
@@ -88,7 +88,7 @@ public class AnaliseCoorteTests
     }
 
     [Fact]
-    public void Delta_negativo_e_preservado_com_sinal()
+    public void Calcular_ComTratadoPiorQueControle_PreservaDeltaNegativo()
     {
         // Arrange — o produto performou pior que a inércia
         var tratado = Coorte.Criar(GrupoCoorte.Tratado, 1000, 300, 100);   // 30%
@@ -105,7 +105,7 @@ public class AnaliseCoorteTests
     }
 
     [Fact]
-    public void Taxas_iguais_dao_delta_zero_e_a_analise_segue_disponivel()
+    public void Calcular_ComTaxasIguais_RetornaDeltaZeroEAnaliseDisponivel()
     {
         // Arrange
         var tratado = Coorte.Criar(GrupoCoorte.Tratado, 800, 400, 80);     // 50%
@@ -122,7 +122,7 @@ public class AnaliseCoorteTests
     }
 
     [Fact]
-    public void Tratado_com_cem_por_cento_atribui_o_complemento_da_taxa_de_controle()
+    public void Calcular_ComTratadoEmCemPorCento_AtribuiComplementoDaTaxaDeControle()
     {
         // Arrange
         var tratado = Coorte.Criar(GrupoCoorte.Tratado, 500, 500, 60);     // 100%
@@ -138,7 +138,7 @@ public class AnaliseCoorteTests
     }
 
     [Fact]
-    public void Ticket_medio_ausente_zera_a_receita_sem_derrubar_o_delta()
+    public void Calcular_ComTicketMedioAusente_ZeraReceitaEMantemDelta()
     {
         // Arrange
         var tratado = TratadoCanonico();
@@ -156,7 +156,7 @@ public class AnaliseCoorteTests
     }
 
     [Fact]
-    public void Ticket_medio_zerado_tambem_zera_a_receita_sem_derrubar_o_delta()
+    public void Calcular_ComTicketMedioZerado_ZeraReceitaEMantemDelta()
     {
         // Arrange
         var tratado = TratadoCanonico();
@@ -173,7 +173,7 @@ public class AnaliseCoorteTests
     }
 
     [Fact]
-    public void Ticket_medio_negativo_e_erro_de_quem_chamou()
+    public void Calcular_ComTicketMedioNegativo_LancaRegraDeDominio()
     {
         // Arrange
         var tratado = TratadoCanonico();
@@ -187,7 +187,7 @@ public class AnaliseCoorteTests
     }
 
     [Fact]
-    public void Bracos_trocados_de_lugar_sao_erro_de_quem_chamou()
+    public void Calcular_ComBracosTrocados_LancaRegraDeDominio()
     {
         // Arrange
         var controle = ControleCanonico();

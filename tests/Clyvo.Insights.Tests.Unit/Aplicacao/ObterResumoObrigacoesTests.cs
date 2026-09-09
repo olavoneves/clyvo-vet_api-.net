@@ -17,7 +17,7 @@ public class ObterResumoObrigacoesTests
     }
 
     [Fact]
-    public async Task Consulta_o_funil_da_clinica_do_token_e_projeta_o_resumo()
+    public async Task ExecutarAsync_ComFunilDaClinica_ProjetaOResumoPorEstado()
     {
         // Arrange
         var funil = new LinhaFunilObrigacoes(
@@ -61,7 +61,7 @@ public class ObterResumoObrigacoesTests
     }
 
     [Fact]
-    public async Task Clinica_sem_obrigacao_vencida_devolve_resumo_zerado_sem_datas()
+    public async Task ExecutarAsync_SemObrigacaoVencida_RetornaResumoZeradoSemDatas()
     {
         // Arrange
         _repositorio

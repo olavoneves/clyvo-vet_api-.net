@@ -95,6 +95,16 @@ public sealed class MetaIndicadorRepositoryEmMemoria : IMetaIndicadorRepository
         return Task.CompletedTask;
     }
 
+    /// <summary>
+    /// Devolve o repositório ao estado inicial entre testes da mesma classe.
+    /// </summary>
+    public void Limpar()
+    {
+        _metas.Clear();
+        _pendentes.Clear();
+        _proximoId = 1;
+    }
+
     /// <summary>Só aqui o id é atribuído, como faria o identity do Oracle.</summary>
     public Task SalvarAsync(CancellationToken cancellationToken = default)
     {
@@ -118,6 +128,12 @@ public sealed class ProjecaoRepositoryEmMemoria : IProjecaoRepository
     public List<RegistroDeConsulta> Consultas { get; } = new();
 
     public IReadOnlyCollection<SnapshotCoorte> Snapshots => _snapshots.Values;
+
+    public void Limpar()
+    {
+        _snapshots.Clear();
+        Consultas.Clear();
+    }
 
     public Task<SnapshotCoorte?> ObterSnapshotDoDiaAsync(
         long idClinica,

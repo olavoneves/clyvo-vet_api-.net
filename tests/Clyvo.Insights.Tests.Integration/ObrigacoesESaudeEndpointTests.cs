@@ -6,7 +6,8 @@ using Clyvo.Insights.Tests.Integration.Fixtures;
 
 namespace Clyvo.Insights.Tests.Integration;
 
-public class ObrigacoesEndpointTests : IClassFixture<FabricaDaApi>
+[Collection(ColecaoDaApi.Nome)]
+public class ObrigacoesEndpointTests
 {
     private const string Rota = "/api/insights/obrigacoes/resumo";
 
@@ -18,7 +19,7 @@ public class ObrigacoesEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task Sem_token_devolve_401()
+    public async Task ObterResumoObrigacoes_SemToken_Retorna401()
     {
         // Arrange
         var cliente = _api.CreateClient();
@@ -31,7 +32,7 @@ public class ObrigacoesEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task Os_baldes_da_resposta_somam_o_total()
+    public async Task ObterResumoObrigacoes_ComObrigacoesVencidas_RetornaBaldesQueSomamOTotal()
     {
         // Arrange
         var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
@@ -53,7 +54,7 @@ public class ObrigacoesEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task Clinica_sem_obrigacao_vencida_devolve_200_zerado()
+    public async Task ObterResumoObrigacoes_SemObrigacaoVencida_Retorna200Zerado()
     {
         // Arrange
         var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaSemDados);
@@ -69,7 +70,8 @@ public class ObrigacoesEndpointTests : IClassFixture<FabricaDaApi>
     }
 }
 
-public class SaudeEndpointTests : IClassFixture<FabricaDaApi>
+[Collection(ColecaoDaApi.Nome)]
+public class SaudeEndpointTests
 {
     private readonly FabricaDaApi _api;
 
@@ -79,7 +81,7 @@ public class SaudeEndpointTests : IClassFixture<FabricaDaApi>
     }
 
     [Fact]
-    public async Task Health_responde_sem_token_e_nao_depende_de_banco()
+    public async Task Health_SemToken_Retorna200ComApenasOCheckSelf()
     {
         // Arrange
         var cliente = _api.CreateClient();

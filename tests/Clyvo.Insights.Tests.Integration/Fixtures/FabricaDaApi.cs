@@ -32,6 +32,8 @@ public sealed class FabricaDaApi : WebApplicationFactory<Program>
 
     public ProjecaoRepositoryEmMemoria Projecoes { get; } = new();
 
+    public MetaIndicadorRepositoryEmMemoria Metas { get; } = new();
+
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         Converters = { new JsonStringEnumConverter() }
@@ -58,9 +60,20 @@ public sealed class FabricaDaApi : WebApplicationFactory<Program>
             services.RemoveAll<IProjecaoRepository>();
 
             services.AddSingleton<ILeituraDoCoreRepository, LeituraDoCoreRepositoryEmMemoria>();
-            services.AddSingleton<IMetaIndicadorRepository, MetaIndicadorRepositoryEmMemoria>();
+            services.AddSingleton<IMetaIndicadorRepository>(Metas);
             services.AddSingleton<IProjecaoRepository>(Projecoes);
         });
+    }
+
+    /// <summary>
+    /// Devolve o host ao estado inicial. Chamado pelo construtor das classes de
+    /// teste que escrevem, para que o resultado não dependa da ordem em que o
+    /// xUnit resolveu executá-las.
+    /// </summary>
+    public void LimparEstado()
+    {
+        Metas.Limpar();
+        Projecoes.Limpar();
     }
 
     /// <summary>Cliente autenticado como a clínica pedida.</summary>

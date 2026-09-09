@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Clyvo.Insights.Application.Coortes;
 using Clyvo.Insights.Application.Metas;
 using Clyvo.Insights.Tests.Integration.Fixtures;
 
@@ -9,20 +10,30 @@ namespace Clyvo.Insights.Tests.Integration;
 /// CRUD de metas pela borda HTTP.
 /// </summary>
 /// <remarks>
-/// Cada teste cria a própria fábrica: as metas vivem num repositório em memória
-/// compartilhado pelo host, e reaproveitá-lo entre testes faria o resultado
-/// depender da ordem de execução.
+/// Usa <c>IClassFixture</c>, e não a collection compartilhada: estes testes
+/// criam e apagam metas, e um host mutável não pode ser dividido com as classes
+/// que só leem. O host é reaproveitado entre os métodos desta classe — o xUnit
+/// constrói uma instância nova da classe por teste, então o
+/// <see cref="FabricaDaApi.LimparEstado"/> do construtor garante que cada um
+/// comece do zero, independentemente da ordem de execução.
 /// </remarks>
-public class MetasEndpointTests
+public class MetasEndpointTests : IClassFixture<FabricaDaApi>
 {
     private const string Rota = "/api/insights/metas";
 
+    private readonly FabricaDaApi _api;
+
+    public MetasEndpointTests(FabricaDaApi api)
+    {
+        _api = api;
+        _api.LimparEstado();
+    }
+
     [Fact]
-    public async Task Sem_token_devolve_401()
+    public async Task ListarMetas_SemToken_Retorna401()
     {
         // Arrange
-        using var api = new FabricaDaApi();
-        var cliente = api.CreateClient();
+        var cliente = _api.CreateClient();
 
         // Act
         var resposta = await cliente.GetAsync(Rota);
@@ -32,11 +43,10 @@ public class MetasEndpointTests
     }
 
     [Fact]
-    public async Task Post_valido_devolve_201_com_a_meta_criada()
+    public async Task CriarMeta_ComCorpoValido_Retorna201ComAMetaCriada()
     {
         // Arrange
-        using var api = new FabricaDaApi();
-        var cliente = api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
 
         // Act
         var resposta = await cliente.PostAsJsonAsync(
@@ -55,11 +65,10 @@ public class MetasEndpointTests
     [InlineData("TaxaCumprimento", 150)]
     [InlineData("TaxaCumprimento", -1)]
     [InlineData("IndicadorQueNaoExiste", 55)]
-    public async Task Post_invalido_devolve_400(string indicador, decimal limiar)
+    public async Task CriarMeta_ComCorpoInvalido_Retorna400(string indicador, decimal limiar)
     {
         // Arrange
-        using var api = new FabricaDaApi();
-        var cliente = api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
 
         // Act
         var resposta = await cliente.PostAsJsonAsync(
@@ -70,11 +79,10 @@ public class MetasEndpointTests
     }
 
     [Fact]
-    public async Task Post_do_mesmo_indicador_duas_vezes_devolve_409()
+    public async Task CriarMeta_ComIndicadorJaComMeta_Retorna409()
     {
         // Arrange
-        using var api = new FabricaDaApi();
-        var cliente = api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
         var corpo = new { indicador = "TaxaCumprimento", limiarPercentual = 55m };
         await cliente.PostAsJsonAsync(Rota, corpo);
 
@@ -86,11 +94,10 @@ public class MetasEndpointTests
     }
 
     [Fact]
-    public async Task Put_devolve_200_com_o_limiar_novo()
+    public async Task AtualizarMeta_ComMetaExistente_Retorna200ComOLimiarNovo()
     {
         // Arrange
-        using var api = new FabricaDaApi();
-        var cliente = api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
         var criada = await CriarAsync(cliente, "TaxaCumprimento", 55m);
 
         // Act
@@ -104,11 +111,10 @@ public class MetasEndpointTests
     }
 
     [Fact]
-    public async Task Put_em_meta_inexistente_devolve_404()
+    public async Task AtualizarMeta_ComMetaInexistente_Retorna404()
     {
         // Arrange
-        using var api = new FabricaDaApi();
-        var cliente = api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
 
         // Act
         var resposta = await cliente.PutAsJsonAsync($"{Rota}/999999", new { limiarPercentual = 62.5m });
@@ -118,11 +124,10 @@ public class MetasEndpointTests
     }
 
     [Fact]
-    public async Task Delete_devolve_204_e_a_meta_some_da_listagem()
+    public async Task RemoverMeta_ComMetaExistente_Retorna204ESomeDaListagem()
     {
         // Arrange
-        using var api = new FabricaDaApi();
-        var cliente = api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
         var criada = await CriarAsync(cliente, "TaxaCumprimento", 55m);
 
         // Act
@@ -135,11 +140,10 @@ public class MetasEndpointTests
     }
 
     [Fact]
-    public async Task Delete_de_meta_inexistente_devolve_404()
+    public async Task RemoverMeta_ComMetaInexistente_Retorna404()
     {
         // Arrange
-        using var api = new FabricaDaApi();
-        var cliente = api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
 
         // Act
         var resposta = await cliente.DeleteAsync($"{Rota}/999999");
@@ -149,12 +153,11 @@ public class MetasEndpointTests
     }
 
     [Fact]
-    public async Task Meta_de_uma_clinica_nao_aparece_nem_e_alcancada_pela_outra()
+    public async Task ListarMetas_ComTokenDaClinicaVizinha_NaoAlcancaAMetaDaOutra()
     {
         // Arrange
-        using var api = new FabricaDaApi();
-        var daClinica = api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
-        var daVizinha = api.ClienteDaClinica(DadosCanonicos.ClinicaVizinha);
+        var daClinica = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var daVizinha = _api.ClienteDaClinica(DadosCanonicos.ClinicaVizinha);
         var criada = await CriarAsync(daClinica, "TaxaCumprimento", 55m);
 
         // Act
@@ -170,15 +173,14 @@ public class MetasEndpointTests
     }
 
     [Fact]
-    public async Task Meta_definida_aparece_avaliada_na_analise_de_coorte()
+    public async Task ObterCoorte_ComMetaDefinida_RetornaAMetaAvaliada()
     {
         // Arrange — a clínica cumpre 60% e a meta pede 75%
-        using var api = new FabricaDaApi();
-        var cliente = api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
         await CriarAsync(cliente, "TaxaCumprimento", 75m);
 
         // Act
-        var analise = await cliente.GetFromJsonAsync<Clyvo.Insights.Application.Coortes.AnaliseCoorteDto>(
+        var analise = await cliente.GetFromJsonAsync<AnaliseCoorteDto>(
             "/api/insights/coorte", FabricaDaApi.Json);
 
         // Assert
