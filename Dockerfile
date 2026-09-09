@@ -28,12 +28,10 @@ RUN dotnet publish src/Clyvo.Insights.Api/Clyvo.Insights.Api.csproj \
 # --- Estagio 2: imagem de execucao ---
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 
-# curl entra so para o healthcheck do compose: a imagem de runtime nao traz
-# nenhum cliente HTTP, e sem ele o compose nao consegue sondar /health.
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends curl \
-    && rm -rf /var/lib/apt/lists/*
-
+# Sem instalacao de pacote no estagio de execucao. Um `apt-get install` aqui faz
+# o build depender dos espelhos da Debian estarem no ar — e um build de entrega
+# precisa funcionar na maquina de quem clona, nao so na de quem escreveu. A
+# sonda de /health e feita de fora do container.
 RUN groupadd --system appuser && useradd --system --gid appuser appuser
 
 WORKDIR /app
