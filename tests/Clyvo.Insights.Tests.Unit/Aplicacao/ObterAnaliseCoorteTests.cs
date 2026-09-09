@@ -18,7 +18,7 @@ public class ObterAnaliseCoorteTests
 {
     private const long IdClinicaDoToken = 23;
 
-    private readonly Mock<ICoorteReadRepository> _repositorio = new(MockBehavior.Strict);
+    private readonly Mock<ILeituraDoCoreRepository> _repositorio = new(MockBehavior.Strict);
     private readonly Mock<IMetaIndicadorRepository> _metas = new();
     private readonly Mock<IProjecaoRepository> _projecoes = new();
     private readonly Mock<ITenantContext> _tenant = new();
@@ -50,7 +50,7 @@ public class ObterAnaliseCoorteTests
             .ReturnsAsync(linhas);
 
     [Fact]
-    public async Task Consulta_o_repositorio_com_a_clinica_do_token()
+    public async Task ExecutarAsync_ComTenantResolvido_ConsultaRepositorioComAClinicaDoToken()
     {
         // Arrange
         ConfigurarLeitura(IdClinicaDoToken,
@@ -69,7 +69,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Mapeia_as_linhas_da_view_para_o_dto_de_resposta()
+    public async Task ExecutarAsync_ComAsDuasCoortes_MapeiaLinhasDaViewParaODto()
     {
         // Arrange
         ConfigurarLeitura(IdClinicaDoToken,
@@ -96,7 +96,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Repassa_ao_dto_os_numeros_que_o_dominio_calculou()
+    public async Task ExecutarAsync_ComAsDuasCoortes_RepassaOsNumerosCalculadosPeloDominio()
     {
         // Arrange
         ConfigurarLeitura(IdClinicaDoToken,
@@ -119,7 +119,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Grupo_ausente_na_leitura_vira_coorte_vazia_e_analise_indisponivel()
+    public async Task ExecutarAsync_ComGrupoAusenteNaLeitura_RetornaAnaliseIndisponivel()
     {
         // Arrange — clínica cujo controle ainda não teve obrigação resolvida
         ConfigurarLeitura(IdClinicaDoToken,
@@ -136,7 +136,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Leitura_vazia_devolve_analise_indisponivel_sem_estourar()
+    public async Task ExecutarAsync_ComLeituraVazia_RetornaAnaliseIndisponivel()
     {
         // Arrange
         ConfigurarLeitura(IdClinicaDoToken);
@@ -151,7 +151,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Ticket_medio_nulo_nas_linhas_chega_nulo_ao_dto()
+    public async Task ExecutarAsync_ComTicketMedioNuloNasLinhas_RetornaTicketNuloNoDto()
     {
         // Arrange — clínica sem consulta realizada com valor lançado
         ConfigurarLeitura(IdClinicaDoToken,
@@ -170,7 +170,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Propaga_o_cancellation_token_ate_o_repositorio()
+    public async Task ExecutarAsync_ComCancellationToken_PropagaOTokenAteORepositorio()
     {
         // Arrange
         using var origem = new CancellationTokenSource();
@@ -188,7 +188,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Confronta_as_metas_da_clinica_com_o_valor_apurado()
+    public async Task ExecutarAsync_ComMetasDefinidas_ConfrontaCadaMetaComOValorApurado()
     {
         // Arrange
         ConfigurarLeitura(IdClinicaDoToken,
@@ -213,7 +213,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Analise_indisponivel_nao_sinaliza_meta_para_nao_dar_alarme_falso()
+    public async Task ExecutarAsync_ComAnaliseIndisponivel_NaoSinalizaMeta()
     {
         // Arrange
         ConfigurarLeitura(IdClinicaDoToken);
@@ -232,7 +232,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Registra_a_consulta_e_o_snapshot_do_dia()
+    public async Task ExecutarAsync_SemSnapshotNoDia_RegistraConsultaESnapshot()
     {
         // Arrange
         ConfigurarLeitura(IdClinicaDoToken,
@@ -263,7 +263,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Reapura_o_snapshot_do_dia_em_vez_de_criar_outro_ponto()
+    public async Task ExecutarAsync_ComSnapshotJaGravadoNoDia_ReapuraEmVezDeCriarOutroPonto()
     {
         // Arrange
         ConfigurarLeitura(IdClinicaDoToken,
@@ -294,7 +294,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Analise_indisponivel_registra_a_consulta_mas_nao_grava_snapshot()
+    public async Task ExecutarAsync_ComAnaliseIndisponivel_RegistraConsultaSemGravarSnapshot()
     {
         // Arrange
         ConfigurarLeitura(IdClinicaDoToken);
@@ -313,7 +313,7 @@ public class ObterAnaliseCoorteTests
     }
 
     [Fact]
-    public async Task Mongo_fora_do_ar_nao_derruba_a_analise()
+    public async Task ExecutarAsync_ComProjecaoIndisponivel_RespondeAnaliseMesmoAssim()
     {
         // Arrange
         ConfigurarLeitura(IdClinicaDoToken,

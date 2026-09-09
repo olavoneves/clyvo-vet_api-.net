@@ -22,3 +22,6 @@ coverage.*.xml
 ## OS
 .DS_Store
 Thumbs.db
+
+## Log em arquivo (rotacao diaria, gerado em execucao)
+logs/

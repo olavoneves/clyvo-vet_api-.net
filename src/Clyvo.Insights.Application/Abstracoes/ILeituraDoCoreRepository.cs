@@ -7,11 +7,20 @@ namespace Clyvo.Insights.Application.Abstracoes;
 /// Porta de leitura sobre as views que o clyvo-core publica.
 /// </summary>
 /// <remarks>
-/// O core expõe <c>VW_CLV_PAINEL_COORTE</c> deliberadamente, como contrato de
-/// integração. Nenhuma implementação desta porta deve ler tabela interna do
-/// core direto, nem replicar em C# a regra de coorte que já está em PL/SQL.
+/// <para>
+/// O core expõe <c>VW_CLV_PAINEL_COORTE</c> e <c>VW_CLV_PAINEL_RECEITA</c>
+/// deliberadamente, como contrato de integração. Nenhuma implementação desta
+/// porta deve ler tabela interna do core direto, nem replicar em C# a regra de
+/// coorte que já está em PL/SQL.
+/// </para>
+/// <para>
+/// O nome diz o que a porta é — leitura do core —, e não o que ela devolvia
+/// quando tinha um método só. Uma porta chamada por coorte que também responde
+/// pelo funil de obrigações obriga quem lê o código a descobrir pela assinatura
+/// que o nome está desatualizado.
+/// </para>
 /// </remarks>
-public interface ICoorteReadRepository
+public interface ILeituraDoCoreRepository
 {
     /// <summary>
     /// Linhas de coorte da clínica: uma por grupo presente, no máximo duas.

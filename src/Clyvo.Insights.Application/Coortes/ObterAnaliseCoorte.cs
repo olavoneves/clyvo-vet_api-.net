@@ -24,14 +24,14 @@ public sealed class ObterAnaliseCoorte
     /// <summary>Rótulo do indicador no log de consulta.</summary>
     private const string IndicadorConsultado = "analise_coorte";
 
-    private readonly ICoorteReadRepository _coortes;
+    private readonly ILeituraDoCoreRepository _coortes;
     private readonly IMetaIndicadorRepository _metas;
     private readonly IProjecaoRepository _projecoes;
     private readonly ITenantContext _tenant;
     private readonly ILogger<ObterAnaliseCoorte> _log;
 
     public ObterAnaliseCoorte(
-        ICoorteReadRepository coortes,
+        ILeituraDoCoreRepository coortes,
         IMetaIndicadorRepository metas,
         IProjecaoRepository projecoes,
         ITenantContext tenant,

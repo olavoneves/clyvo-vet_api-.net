@@ -68,6 +68,9 @@ services:
       - Jwt__Secret=clyvovet-2026-local-dev-secret-key-docker!!
       - Mongo__ConnectionString=mongodb://insights:Insights2026@mongo:27017/?authSource=admin
       - Mongo__Database=clyvo_insights
+      # Sonda de disponibilidade do emissor de tokens. Dentro da rede, a API
+      # Java atende em api-java, que e o nome do servico no compose do core.
+      - Core__BaseUrl=http://api-java:8080
     ports:
       - "8081:8081"
     networks:

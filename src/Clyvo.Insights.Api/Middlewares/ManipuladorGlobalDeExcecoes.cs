@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Clyvo.Insights.Api.Observabilidade;
 using Clyvo.Insights.Application.Excecoes;
 using Clyvo.Insights.Domain.Excecoes;
 using Microsoft.AspNetCore.Mvc;
@@ -30,6 +31,16 @@ public sealed class ManipuladorGlobalDeExcecoes
         try
         {
             await _proximo(contexto);
+        }
+        catch (OperationCanceledException) when (contexto.RequestAborted.IsCancellationRequested)
+        {
+            // Cliente desistiu — fechou a aba, estourou o timeout dele. Não é
+            // falha do serviço, e tratá-la como tal enche o nível Error de
+            // ruído até ele deixar de significar alguma coisa. Sem corpo de
+            // resposta: não há mais ninguém do outro lado para lê-lo.
+            _log.LogInformation(
+                "Requisição cancelada pelo cliente em {Metodo} {Caminho}",
+                contexto.Request.Method, contexto.Request.Path);
         }
         catch (Exception excecao)
         {
@@ -67,6 +78,15 @@ public sealed class ManipuladorGlobalDeExcecoes
         };
 
         problema.Extensions["traceId"] = Activity.Current?.Id ?? contexto.TraceIdentifier;
+
+        // A mesma correlação que sai no cabeçalho, dentro do corpo: quem
+        // reporta o erro colando o JSON entrega o identificador junto. Lida de
+        // Items, e não do cabeçalho — o cabeçalho só existe depois que a
+        // resposta começa, e aqui ela ainda não começou.
+        if (contexto.Items.TryGetValue(CorrelacaoDeRequisicao.ChaveNoContexto, out var correlacao))
+        {
+            problema.Extensions["correlationId"] = correlacao;
+        }
 
         contexto.Response.Clear();
         contexto.Response.StatusCode = status;
