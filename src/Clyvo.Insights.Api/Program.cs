@@ -10,6 +10,7 @@ using Clyvo.Insights.Application.Abstracoes;
 using Clyvo.Insights.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using OpenTelemetry.Metrics;
@@ -20,6 +21,10 @@ using Serilog.Formatting.Compact;
 
 const string NomeDoServico = "clyvo-insights";
 
+// O sufixo vazio antes da extensao e onde o Serilog encaixa a data: o arquivo
+// do dia vira clyvo-insights-20260908.log.
+const string ArquivoDeLog = "logs/clyvo-insights-.log";
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ----------------------------------------------------------------------------
@@ -29,6 +34,11 @@ var builder = WebApplication.CreateBuilder(args);
 // e "delta de 25,07 p.p. para a clínica 23" só vira filtro se IdClinica for um
 // campo, e não parte de uma frase. O enricher de trace liga cada linha ao span
 // do OpenTelemetry e ao traceId que o cliente recebeu no ProblemDetails.
+//
+// Dois destinos, com papéis diferentes: o console é o que o orquestrador
+// coleta, e o arquivo é o que sobrevive ao container ser recriado durante a
+// investigação de um incidente. Mesmo formato nos dois, para que a mesma
+// consulta sirva aos dois.
 // ----------------------------------------------------------------------------
 builder.Host.UseSerilog((contexto, servicos, configuracao) => configuracao
     .ReadFrom.Configuration(contexto.Configuration)
@@ -36,7 +46,15 @@ builder.Host.UseSerilog((contexto, servicos, configuracao) => configuracao
     .Enrich.FromLogContext()
     .Enrich.With(new EnriquecedorDeTrace())
     .Enrich.WithProperty("Servico", NomeDoServico)
-    .WriteTo.Console(new CompactJsonFormatter()));
+    .WriteTo.Console(new CompactJsonFormatter())
+    .WriteTo.File(
+        new CompactJsonFormatter(),
+        path: contexto.Configuration["Serilog:Arquivo"] ?? ArquivoDeLog,
+        rollingInterval: RollingInterval.Day,
+        // Uma semana. Log de análise de coorte não é registro clínico, e reter
+        // indefinidamente só enche o disco de quem esquecer de limpar.
+        retainedFileCountLimit: 7,
+        shared: true));
 
 // ----------------------------------------------------------------------------
 // Camadas
@@ -52,6 +70,29 @@ builder.Services.AddScoped<ITenantContext, TenantContextHttp>();
 // quebra silenciosa de contrato.
 builder.Services.AddControllers().AddJsonOptions(json =>
     json.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// O 400 de validação de modelo é produzido pelo próprio [ApiController], antes
+// de qualquer código nosso rodar, e por isso não passa pelo middleware de
+// exceção. Sem este ajuste, o erro mais comum da API seria o único a sair sem
+// correlação — justamente o que o cliente mais tem a reportar.
+builder.Services.Configure<ApiBehaviorOptions>(opcoes =>
+{
+    var padrao = opcoes.InvalidModelStateResponseFactory;
+
+    opcoes.InvalidModelStateResponseFactory = contexto =>
+    {
+        if (contexto.HttpContext.Items.TryGetValue(CorrelacaoDeRequisicao.ChaveNoContexto, out var correlacao)
+            && padrao(contexto) is ObjectResult resultado
+            && resultado.Value is ProblemDetails problema)
+        {
+            problema.Extensions["correlationId"] = correlacao;
+
+            return resultado;
+        }
+
+        return padrao(contexto);
+    };
+});
 
 // ----------------------------------------------------------------------------
 // Tracing e métricas
@@ -169,7 +210,13 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Primeiro na pipeline: precisa enxergar a exceção de tudo que vem depois.
+// Primeiro na pipeline, antes até do tratamento de exceção: a correlação entra
+// no LogContext aqui e continua ativa enquanto a exceção sobe. Na ordem
+// inversa, o `using` do LogContext seria desfeito ao desempilhar, e a linha de
+// erro — justamente a que se quer correlacionar — sairia sem a correlação.
+app.UseMiddleware<CorrelacaoDeRequisicao>();
+
+// Enxerga a exceção de tudo que vem depois.
 app.UseMiddleware<ManipuladorGlobalDeExcecoes>();
 
 // Uma linha por requisição, com rota, status e duração, em vez das três que o
