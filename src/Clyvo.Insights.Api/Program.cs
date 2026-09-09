@@ -101,6 +101,10 @@ builder.Services.Configure<ApiBehaviorOptions>(opcoes =>
 // infraestrutura morta no compose. Trocar por OTLP é uma linha, no dia em que
 // houver para onde exportar.
 // ----------------------------------------------------------------------------
+// Agrega o histograma que o ASP.NET Core já publica, para servir /metrics sem
+// um coletor externo e sem medir a mesma coisa duas vezes.
+builder.Services.AddSingleton<ColetorDeMetricas>();
+
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(recurso => recurso.AddService(
         serviceName: NomeDoServico,
@@ -210,6 +214,11 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Resolvido agora, e não na primeira chamada a /metrics: o MeterListener começa
+// a escutar quando o coletor é construído, e um singleton preguiçoso perderia
+// tudo o que aconteceu antes de alguém abrir o endpoint.
+app.Services.GetRequiredService<ColetorDeMetricas>();
+
 // Primeiro na pipeline, antes até do tratamento de exceção: a correlação entra
 // no LogContext aqui e continua ativa enquanto a exceção sobe. Na ordem
 // inversa, o `using` do LogContext seria desfeito ao desempilhar, e a linha de
@@ -235,6 +244,14 @@ app.MapControllers();
 // core. Nenhum dos dois expõe dado de clínica.
 app.MapHealthChecks("/health", RespostaDeSaude.Vivo).AllowAnonymous();
 app.MapHealthChecks("/health/ready", RespostaDeSaude.Pronto).AllowAnonymous();
+
+// Métricas de desempenho: duração por rota e respostas por faixa de status.
+// Anônimo pela mesma razão dos health checks — quem raspa métrica é
+// infraestrutura, não usuário. O que sai daqui são nomes de rota e contagens
+// agregadas, nunca dado de clínica.
+app.MapGet("/metrics", (ColetorDeMetricas coletor) => Results.Json(coletor.Ler()))
+    .AllowAnonymous()
+    .WithName("Metricas");
 
 app.Run();
 

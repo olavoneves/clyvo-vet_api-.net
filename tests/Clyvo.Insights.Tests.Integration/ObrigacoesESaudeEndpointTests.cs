@@ -103,4 +103,32 @@ public class SaudeEndpointTests
         Assert.DoesNotContain("oracle", nomes);
         Assert.DoesNotContain("mongo", nomes);
     }
+
+    [Fact]
+    public async Task Metrics_SemToken_Retorna200ComDuracaoPorRotaETaxaDeErro()
+    {
+        // Arrange — uma requisição autenticada e uma sem token, para que exista
+        // pelo menos uma resposta em cada faixa
+        var autenticado = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        await autenticado.GetAsync("/api/insights/coorte");
+        await _api.CreateClient().GetAsync("/api/insights/coorte");
+
+        // Act
+        var resposta = await _api.CreateClient().GetAsync("/metrics");
+        var corpo = await resposta.Content.ReadAsStringAsync();
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+
+        using var json = JsonDocument.Parse(corpo);
+        Assert.True(json.RootElement.GetProperty("requisicoes").GetInt64() > 0);
+        Assert.True(json.RootElement.TryGetProperty("taxaDeErro", out _));
+
+        var rotas = json.RootElement.GetProperty("duracaoPorRota").EnumerateArray()
+            .Select(r => r.GetProperty("rota").GetString())
+            .ToList();
+
+        // Rota, e não caminho: o que aparece é o template registrado.
+        Assert.Contains("GET api/insights/coorte", rotas);
+    }
 }
