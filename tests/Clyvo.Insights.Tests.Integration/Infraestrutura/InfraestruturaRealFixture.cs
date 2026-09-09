@@ -1,5 +1,8 @@
+using Clyvo.Insights.Infrastructure;
 using Clyvo.Insights.Infrastructure.Persistencia;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 
 namespace Clyvo.Insights.Tests.Integration.Infraestrutura;
@@ -42,6 +45,33 @@ public sealed class InfraestruturaRealFixture : IDisposable
         construtor.ConfigurarOracle(ConnectionStringOracle);
 
         return new InsightsDbContext(construtor.Options);
+    }
+
+    /// <summary>
+    /// Monta o contêiner de DI chamando o mesmo <c>AddInfrastructure</c> que a
+    /// API chama.
+    /// </summary>
+    /// <remarks>
+    /// Resolver as coleções do Mongo daqui, e não construindo um MongoClient à
+    /// mão, é o que faz estes testes cobrirem o registro de convenções — que é
+    /// exatamente onde moravam os defeitos que dublê não pega: camelCase nos
+    /// nomes de campo e Decimal128 no lugar de string.
+    /// </remarks>
+    public ServiceProvider CriarProvedor()
+    {
+        var configuracao = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["ConnectionStrings:Oracle"] = ConnectionStringOracle,
+                ["Mongo:ConnectionString"] = ConnectionStringMongo,
+                ["Mongo:Database"] = NomeDoBancoMongo
+            })
+            .Build();
+
+        return new ServiceCollection()
+            .AddLogging()
+            .AddInfrastructure(configuracao)
+            .BuildServiceProvider();
     }
 
     public IMongoDatabase AbrirMongo()

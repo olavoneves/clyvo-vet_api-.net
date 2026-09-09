@@ -54,7 +54,7 @@ Clyvo.Insights.sln
 │  └─ Clyvo.Insights.Api             controllers, JWT, Swagger, observabilidade
 └─ tests/
    ├─ Clyvo.Insights.Tests.Unit         57 testes
-   └─ Clyvo.Insights.Tests.Integration  26 testes
+   └─ Clyvo.Insights.Tests.Integration  33 testes (8 exigem banco)
 ```
 
 **A dependência aponta para dentro:**
@@ -335,7 +335,7 @@ dotnet test
 ```
 
 Roda a suíte inteira sem exigir banco nenhum: **57 unitários + 25 de integração
-verdes, e 1 ignorado** — o que precisa de infraestrutura real (veja abaixo).
+verdes, e 8 ignorados** — os que precisam de infraestrutura real (veja abaixo).
 
 Um projeto por vez, ou um teste só:
 
@@ -385,12 +385,26 @@ Mongo__ConnectionString="mongodb://insights:Insights2026@localhost:27017/?authSo
 dotnet test tests/Clyvo.Insights.Tests.Integration
 ```
 
-O principal deles compara, sobre cada linha da view, a taxa que o Domínio deriva
-com o `PC_CUMPRIMENTO` que a view publica, com tolerância zero em duas casas.
-Enquanto o painel Thymeleaf ler a coluna e esta API derivar, existem duas
-implementações do mesmo número em produção — o teste transforma uma divergência
-futura em falha de build, em vez de dois números diferentes na mesma
-apresentação.
+São oito, e cada um guarda algo que dublê não pega:
+
+| Teste | O que guarda |
+|---|---|
+| `TaxaCumprimento_SobreAsLinhasDaView_BateComPcCumprimentoDaColuna` | A taxa derivada pelo Domínio contra o `PC_CUMPRIMENTO` da view, tolerância zero em duas casas |
+| `SalvarAsync_ComMetaNova_DevolveDataEmUtcAoRelerDoOracle` | `DateTimeKind` sobrevive à ida e volta ao `TIMESTAMP` |
+| `PainelCoorte_LidaDoOracle_TemAFormaDoContratoPublicado` | Colunas, rótulos de grupo e nulabilidade do ticket |
+| `PainelReceita_LidaDoOracle_TemFunilMonotonicamenteDecrescente` | A invariante que o Domínio assume ao converter funil em baldes |
+| `Migrations_NoOracle_EstaoAplicadasESemPendencia` | Modelo e banco não divergiram |
+| `Migrations_NoOracle_NaoGovernamAsViewsDoCore` | O DDL gerado tem as tabelas `INS_` e **nenhuma** das views |
+| `RegistrarSnapshotAsync_NoMongo_GravaDecimalComoDecimal128` | Decimal vai como número, não como texto, e o campo sai em camelCase |
+| `RegistrarConsultaAsync_NoMongo_AcrescentaLinhaAoLogDeConsulta` | A escrita real pelo caminho de DI da API |
+
+O primeiro é o que mais importa antes da banca: enquanto o painel Thymeleaf ler a
+coluna e esta API derivar, existem duas implementações do mesmo número em
+produção, e o teste transforma uma divergência futura em falha de build em vez de
+dois números diferentes na mesma apresentação.
+
+Todos limpam o que escrevem, em clínicas de teste (`999001`, `999002`) que não
+existem no seed — nenhum deles toca em dado de demonstração.
 
 ---
 
