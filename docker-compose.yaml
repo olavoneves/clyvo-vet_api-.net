@@ -78,12 +78,10 @@ services:
     depends_on:
       mongo:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "http://localhost:8081/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
+    # Sem healthcheck declarado: a imagem do ASP.NET nao traz cliente HTTP, e
+    # instalar um so para a sonda faz o build depender de rede. Quem orquestra
+    # de verdade — Kubernetes, ALB, o proprio Compose de quem consome — sonda
+    # GET /health por HTTP de fora, sem precisar de binario dentro da imagem.
     restart: unless-stopped
 
 volumes:
