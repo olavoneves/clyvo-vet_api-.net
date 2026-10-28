@@ -1,6 +1,7 @@
-using Clyvo.Insights.Application.Coortes;
+﻿using Clyvo.Insights.Application.Coortes;
 using Clyvo.Insights.Application.Obrigacoes;
 using Clyvo.Insights.Domain.Coortes;
+using Clyvo.Insights.Domain.Obrigacoes;
 
 namespace Clyvo.Insights.Tests.Integration.Fixtures;
 
@@ -65,4 +66,55 @@ public static class DadosCanonicos
 
     public static LinhaFunilObrigacoes FunilVazio { get; } =
         new(0, 0, 0, 0, 0, 0, 0m, 0m, null, null);
+
+    // Declarado antes de Obrigacoes: inicializador estático roda na ordem do
+    // arquivo, e a lista abaixo usa este array.
+    private static readonly string[] Categorias = { "VACINA", "VERMIFUGO", "EXAME" };
+
+    /// <summary>
+    /// Obrigações da clínica com coorte: 45, para que a página padrão de 20
+    /// produza três páginas — primeira, meio e última — com a última incompleta.
+    /// </summary>
+    public const int TotalDeObrigacoesDaClinica = 45;
+
+    /// <summary>Uma obrigação que existe, mas na clínica vizinha.</summary>
+    public const long ObrigacaoDaVizinha = 9001;
+
+    /// <summary>
+    /// Obrigações por clínica, geradas de forma determinística.
+    /// </summary>
+    /// <remarks>
+    /// O status percorre os sete estados em ordem, então a obrigação <c>i</c>
+    /// tem o status <c>(i - 1) % 7 + 1</c>; uma em cada cinco é de controle; a
+    /// data prevista avança um dia por obrigação a partir de 01/01/2026. Com
+    /// isso, cada filtro tem uma contagem que dá para conferir de cabeça.
+    /// </remarks>
+    public static IReadOnlyDictionary<long, IReadOnlyList<LinhaObrigacao>> Obrigacoes { get; } =
+        new Dictionary<long, IReadOnlyList<LinhaObrigacao>>
+        {
+            [ClinicaComCoorte] = Enumerable.Range(1, TotalDeObrigacoesDaClinica).Select(i => Obrigacao(i)).ToList(),
+            [ClinicaVizinha] = new[] { Obrigacao(1, ObrigacaoDaVizinha), Obrigacao(2, ObrigacaoDaVizinha + 1) }
+        };
+
+    private static LinhaObrigacao Obrigacao(int i, long? id = null)
+    {
+        var status = (StatusObrigacao)((i - 1) % 7 + 1);
+        var prevista = new DateTime(2026, 1, 1).AddDays(i - 1);
+
+        return new LinhaObrigacao(
+            IdObrigacao: id ?? i,
+            IdPet: 100 + i % 5,
+            NomePet: $"Pet {(char)('A' + i % 5)}",
+            NomeTutor: $"Tutor {i % 5}",
+            Protocolo: "Protocolo de teste",
+            Categoria: Categorias[i % Categorias.Length],
+            Etapa: $"Etapa {i % 3 + 1}",
+            Status: status,
+            Grupo: i % 5 == 0 ? GrupoCoorte.Controle : GrupoCoorte.Tratado,
+            DataPrevista: prevista,
+            JanelaInicio: prevista.AddDays(-7),
+            JanelaFim: prevista.AddDays(7),
+            ValorEstimado: 100m + i,
+            ValorRealizado: status == StatusObrigacao.Cumprida ? 100m + i : null);
+    }
 }

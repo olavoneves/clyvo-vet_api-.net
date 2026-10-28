@@ -70,8 +70,10 @@ public sealed class FabricaDaApi : WebApplicationFactory<Program>
             services.RemoveAll<ILeituraDoCoreRepository>();
             services.RemoveAll<IMetaIndicadorRepository>();
             services.RemoveAll<IProjecaoRepository>();
+            services.RemoveAll<IDetalheObrigacaoRepository>();
 
             services.AddSingleton<ILeituraDoCoreRepository, LeituraDoCoreRepositoryEmMemoria>();
+            services.AddSingleton<IDetalheObrigacaoRepository, DetalheObrigacaoRepositoryEmMemoria>();
             services.AddSingleton<IMetaIndicadorRepository>(Metas);
             services.AddSingleton<IProjecaoRepository>(Projecoes);
         });

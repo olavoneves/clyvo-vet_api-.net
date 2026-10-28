@@ -44,6 +44,7 @@ public static class InjecaoDeDependencia
 
         services.AddScoped<ILeituraDoCoreRepository, LeituraDoCoreRepository>();
         services.AddScoped<IMetaIndicadorRepository, MetaIndicadorRepository>();
+        services.AddScoped<IDetalheObrigacaoRepository, DetalheObrigacaoRepository>();
 
         services.AddMongo(configuration);
         services.AddVerificacoesDeSaude(configuration);

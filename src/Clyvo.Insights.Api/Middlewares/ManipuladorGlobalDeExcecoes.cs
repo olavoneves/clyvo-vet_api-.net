@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text.Json;
 using Clyvo.Insights.Api.Observabilidade;
 using Clyvo.Insights.Application.Excecoes;
 using Clyvo.Insights.Domain.Excecoes;
@@ -77,6 +78,14 @@ public sealed class ManipuladorGlobalDeExcecoes
             Instance = contexto.Request.Path
         };
 
+        // Mesma chave que o [ApiController] usa na validação de modelo: o
+        // cliente acha o erro de parâmetro no mesmo lugar, venha ele do binding
+        // ou dos critérios da Aplicação.
+        if (excecao is ConsultaInvalidaException consultaInvalida)
+        {
+            problema.Extensions["errors"] = consultaInvalida.Erros;
+        }
+
         problema.Extensions["traceId"] = Activity.Current?.Id ?? contexto.TraceIdentifier;
 
         // A mesma correlação que sai no cabeçalho, dentro do corpo: quem
@@ -90,9 +99,11 @@ public sealed class ManipuladorGlobalDeExcecoes
 
         contexto.Response.Clear();
         contexto.Response.StatusCode = status;
-        contexto.Response.ContentType = "application/problem+json";
 
-        await contexto.Response.WriteAsJsonAsync(problema);
+        // O tipo vai no próprio WriteAsJsonAsync: definido antes em
+        // Response.ContentType, ele era sobrescrito por application/json.
+        await contexto.Response.WriteAsJsonAsync(
+            problema, (JsonSerializerOptions?)null, "application/problem+json");
     }
 
     /// <summary>
@@ -104,6 +115,10 @@ public sealed class ManipuladorGlobalDeExcecoes
     {
         RegraDeDominioException regra =>
             (StatusCodes.Status400BadRequest, "Requisição inválida", regra.Message),
+
+        ConsultaInvalidaException =>
+            (StatusCodes.Status400BadRequest, "Parâmetros de consulta inválidos",
+             "Um ou mais parâmetros de consulta estão fora do que o recurso aceita. Veja 'errors'."),
 
         RecursoNaoEncontradoException naoEncontrado =>
             (StatusCodes.Status404NotFound, "Recurso não encontrado", naoEncontrado.Message),

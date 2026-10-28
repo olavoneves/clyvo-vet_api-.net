@@ -2,6 +2,7 @@ using System.Reflection;
 using Clyvo.Insights.Application.Abstracoes;
 using Clyvo.Insights.Application.Coortes;
 using Clyvo.Insights.Application.Obrigacoes;
+using Clyvo.Insights.Application.Paginacao;
 using Clyvo.Insights.Application.Projecoes;
 using Clyvo.Insights.Domain.Metas;
 using Clyvo.Insights.Domain.Projecoes;
@@ -44,6 +45,63 @@ public sealed class LeituraDoCoreRepositoryEmMemoria : ILeituraDoCoreRepository
         Task.FromResult(_funis.TryGetValue(idClinica, out var funil)
             ? funil
             : DadosCanonicos.FunilVazio);
+}
+
+/// <summary>
+/// <c>VW_CLV_OBRIGACAO_DETALHE</c> servida de memória, com a mesma semântica de
+/// filtro, ordenação e paginação do repositório real.
+/// </summary>
+/// <remarks>
+/// O recorte por clínica é reproduzido pelo mesmo motivo das metas: sem ele, o
+/// 404 para obrigação de outra clínica passaria por acidente da fixture. O SQL
+/// de verdade é coberto pelo teste protegido por <c>CLYVO_TESTES_DE_INFRA</c>.
+/// </remarks>
+public sealed class DetalheObrigacaoRepositoryEmMemoria : IDetalheObrigacaoRepository
+{
+    public Task<Pagina<LinhaObrigacao>> ListarDaClinicaAsync(
+        long idClinica,
+        CriteriosListagemObrigacoes criterios,
+        CancellationToken cancellationToken = default)
+    {
+        var filtradas = DaClinica(idClinica)
+            .Where(o => criterios.Status is null || o.Status == criterios.Status)
+            .Where(o => criterios.Grupo is null || o.Grupo == criterios.Grupo)
+            .Where(o => criterios.Categoria is null || o.Categoria == criterios.Categoria)
+            .Where(o => criterios.De is null || o.DataPrevista >= criterios.De.Value.ToDateTime(TimeOnly.MinValue))
+            .Where(o => criterios.Ate is null
+                        || o.DataPrevista < criterios.Ate.Value.AddDays(1).ToDateTime(TimeOnly.MinValue))
+            .Where(o => criterios.IdPet is null || o.IdPet == criterios.IdPet)
+            .ToList();
+
+        Func<LinhaObrigacao, object?> chave = criterios.OrdenarPor switch
+        {
+            CampoOrdenacaoObrigacoes.Status => o => (int)o.Status,
+            CampoOrdenacaoObrigacoes.Pet => o => o.NomePet,
+            CampoOrdenacaoObrigacoes.ValorEstimado => o => o.ValorEstimado,
+            _ => o => o.DataPrevista
+        };
+
+        var ordenadas = criterios.Direcao == DirecaoOrdenacao.Desc
+            ? filtradas.OrderByDescending(chave)
+            : filtradas.OrderBy(chave);
+
+        var itens = ordenadas
+            .ThenBy(o => o.IdObrigacao)
+            .Skip(criterios.Deslocamento)
+            .Take(criterios.Tamanho)
+            .ToList();
+
+        return Task.FromResult(new Pagina<LinhaObrigacao>(itens, criterios.Pagina, criterios.Tamanho, filtradas.Count));
+    }
+
+    public Task<LinhaObrigacao?> ObterDaClinicaAsync(
+        long idClinica,
+        long idObrigacao,
+        CancellationToken cancellationToken = default) =>
+        Task.FromResult(DaClinica(idClinica).FirstOrDefault(o => o.IdObrigacao == idObrigacao));
+
+    private static IReadOnlyList<LinhaObrigacao> DaClinica(long idClinica) =>
+        DadosCanonicos.Obrigacoes.TryGetValue(idClinica, out var linhas) ? linhas : Array.Empty<LinhaObrigacao>();
 }
 
 /// <summary>

@@ -31,6 +31,9 @@ public class InsightsDbContext : DbContext
     /// <summary>Funil mensal de obrigações, vindo de <c>VW_CLV_PAINEL_RECEITA</c>.</summary>
     public DbSet<PainelReceitaView> PainelReceita => Set<PainelReceitaView>();
 
+    /// <summary>Uma linha por obrigação, vinda de <c>VW_CLV_OBRIGACAO_DETALHE</c>.</summary>
+    public DbSet<ObrigacaoDetalheView> ObrigacoesDetalhe => Set<ObrigacaoDetalheView>();
+
     /// <summary>Metas de indicador em <c>INS_META_INDICADOR</c>. Escrita.</summary>
     public DbSet<MetaIndicador> Metas => Set<MetaIndicador>();
 

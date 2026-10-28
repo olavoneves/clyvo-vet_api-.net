@@ -12,6 +12,8 @@ public static class InjecaoDeDependencia
     {
         services.AddScoped<ObterAnaliseCoorte>();
         services.AddScoped<ObterResumoObrigacoes>();
+        services.AddScoped<ListarObrigacoes>();
+        services.AddScoped<ObterObrigacao>();
 
         services.AddScoped<CriarMetaIndicador>();
         services.AddScoped<ListarMetasIndicador>();
