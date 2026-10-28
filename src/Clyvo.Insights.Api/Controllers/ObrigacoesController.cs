@@ -82,16 +82,20 @@ public sealed class ObrigacoesController : ControllerBase
     /// Baldes exclusivos: cada obrigação aparece uma vez só, no estado mais
     /// adiantado que alcançou. Obrigação futura não entra — ela ainda não teve
     /// a chance de virar comparecimento ou falta.
+    ///
+    /// Cada balde tem um link, com o nome do campo, para a listagem filtrada
+    /// pelo status correspondente e limitada às obrigações já vencidas.
+    /// <c>naoTrabalhadas</c> soma PREVISTA e CANCELADA e por isso tem dois.
     /// </remarks>
-    /// <response code="200">Resumo da clínica do token.</response>
+    /// <response code="200">Resumo da clínica do token, com <c>_links</c>.</response>
     /// <response code="401">Token ausente, expirado ou com assinatura inválida.</response>
     [HttpGet("resumo", Name = NomesDeRota.ObterResumoObrigacoes)]
-    [ProducesResponseType(typeof(ResumoObrigacoesDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Recurso<ResumoObrigacoesDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<ActionResult<ResumoObrigacoesDto>> Resumo(CancellationToken cancellationToken)
+    public async Task<ActionResult<Recurso<ResumoObrigacoesDto>>> Resumo(CancellationToken cancellationToken)
     {
         var resumo = await _obterResumo.ExecutarAsync(cancellationToken);
 
-        return Ok(resumo);
+        return Ok(_links.ParaResumoDeObrigacoes(resumo));
     }
 }

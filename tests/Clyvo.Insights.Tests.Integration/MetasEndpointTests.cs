@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Clyvo.Insights.Api.Hipermidia;
 using Clyvo.Insights.Application.Coortes;
 using Clyvo.Insights.Application.Metas;
 using Clyvo.Insights.Tests.Integration.Fixtures;
@@ -132,11 +133,11 @@ public class MetasEndpointTests : IClassFixture<FabricaDaApi>
 
         // Act
         var resposta = await cliente.DeleteAsync($"{Rota}/{criada.Id}");
-        var restantes = await cliente.GetFromJsonAsync<List<MetaIndicadorDto>>(Rota, FabricaDaApi.Json);
+        var restantes = await cliente.GetFromJsonAsync<ColecaoDeRecursos<MetaIndicadorDto>>(Rota, FabricaDaApi.Json);
 
         // Assert
         Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
-        Assert.Empty(restantes!);
+        Assert.Empty(restantes!.Itens);
     }
 
     [Fact]
@@ -161,13 +162,13 @@ public class MetasEndpointTests : IClassFixture<FabricaDaApi>
         var criada = await CriarAsync(daClinica, "TaxaCumprimento", 55m);
 
         // Act
-        var listaDaVizinha = await daVizinha.GetFromJsonAsync<List<MetaIndicadorDto>>(Rota, FabricaDaApi.Json);
+        var listaDaVizinha = await daVizinha.GetFromJsonAsync<ColecaoDeRecursos<MetaIndicadorDto>>(Rota, FabricaDaApi.Json);
         var putDaVizinha = await daVizinha.PutAsJsonAsync($"{Rota}/{criada.Id}", new { limiarPercentual = 10m });
         var deleteDaVizinha = await daVizinha.DeleteAsync($"{Rota}/{criada.Id}");
 
         // Assert — 404, e não 403: distinguir "não existe" de "é de outro
         // tenant" já confirmaria que aquele id existe em algum lugar.
-        Assert.Empty(listaDaVizinha!);
+        Assert.Empty(listaDaVizinha!.Itens);
         Assert.Equal(HttpStatusCode.NotFound, putDaVizinha.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, deleteDaVizinha.StatusCode);
     }

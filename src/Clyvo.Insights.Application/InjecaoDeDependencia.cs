@@ -17,6 +17,7 @@ public static class InjecaoDeDependencia
 
         services.AddScoped<CriarMetaIndicador>();
         services.AddScoped<ListarMetasIndicador>();
+        services.AddScoped<ObterMetaIndicador>();
         services.AddScoped<AtualizarMetaIndicador>();
         services.AddScoped<RemoverMetaIndicador>();
 

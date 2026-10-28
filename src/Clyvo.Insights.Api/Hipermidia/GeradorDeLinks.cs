@@ -1,6 +1,10 @@
 using System.Globalization;
+using Clyvo.Insights.Application.Coortes;
+using Clyvo.Insights.Application.Metas;
 using Clyvo.Insights.Application.Obrigacoes;
 using Clyvo.Insights.Application.Paginacao;
+using Clyvo.Insights.Domain.Coortes;
+using Clyvo.Insights.Domain.Obrigacoes;
 
 namespace Clyvo.Insights.Api.Hipermidia;
 
@@ -22,10 +26,12 @@ namespace Clyvo.Insights.Api.Hipermidia;
 public sealed class GeradorDeLinks
 {
     private readonly IResolvedorDeRotas _rotas;
+    private readonly TimeProvider _relogio;
 
-    public GeradorDeLinks(IResolvedorDeRotas rotas)
+    public GeradorDeLinks(IResolvedorDeRotas rotas, TimeProvider relogio)
     {
         _rotas = rotas;
+        _relogio = relogio;
     }
 
     // ------------------------------------------------------------------
@@ -58,9 +64,107 @@ public sealed class GeradorDeLinks
                 Link(NomesDeRota.ListarObrigacoes, listagem.Criterios.NaPagina(numero).ParaParametrosDeConsulta())));
     }
 
+    /// <summary>
+    /// O resumo por estado, com um link por balde para a listagem filtrada
+    /// pelo status correspondente.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// A relação de cada link tem o nome do campo do resumo, para o cliente
+    /// achar o link do número que está mostrando sem tabela de tradução.
+    /// <c>naoTrabalhadas</c> soma dois status, e por isso vira dois links.
+    /// </para>
+    /// <para>
+    /// Os links levam <c>ate</c> no dia anterior ao de hoje: o resumo só conta
+    /// obrigação vencida (<c>DT_PREVISTA &lt; TRUNC(SYSDATE)</c> na view), e a
+    /// listagem sem esse corte misturaria as futuras. O balde é derivado do
+    /// funil cumulativo, então a contagem da listagem é o mesmo recorte, não
+    /// necessariamente o mesmo número.
+    /// </para>
+    /// </remarks>
+    public Recurso<ResumoObrigacoesDto> ParaResumoDeObrigacoes(ResumoObrigacoesDto resumo)
+    {
+        var ontem = DateOnly.FromDateTime(_relogio.GetUtcNow().UtcDateTime).AddDays(-1)
+            .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+        var links = new Dictionary<string, Link>
+        {
+            ["self"] = Link(NomesDeRota.ObterResumoObrigacoes)
+        };
+
+        foreach (var (relacao, status) in BaldesDoResumo)
+        {
+            links[relacao] = Link(NomesDeRota.ListarObrigacoes, new Dictionary<string, string>
+            {
+                ["status"] = status.Codigo(),
+                ["ate"] = ontem
+            });
+        }
+
+        return new Recurso<ResumoObrigacoesDto>(resumo, links);
+    }
+
+    // ------------------------------------------------------------------
+    // Coorte
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// A análise, com um link para as obrigações de cada braço — de onde saem
+    /// os números de tratado e de controle.
+    /// </summary>
+    public Recurso<AnaliseCoorteDto> ParaAnaliseDeCoorte(AnaliseCoorteDto analise) =>
+        new(analise, new Dictionary<string, Link>
+        {
+            ["self"] = Link(NomesDeRota.ObterCoorte),
+            ["obrigacoesTratamento"] = ListagemDoGrupo(GrupoCoorte.Tratado),
+            ["obrigacoesControle"] = ListagemDoGrupo(GrupoCoorte.Controle)
+        });
+
+    // ------------------------------------------------------------------
+    // Metas
+    // ------------------------------------------------------------------
+
+    /// <summary>Uma meta, com o que se pode fazer com ela e o método de cada ação.</summary>
+    public Recurso<MetaIndicadorDto> ParaMeta(MetaIndicadorDto meta)
+    {
+        var id = Id(meta.Id);
+
+        return new Recurso<MetaIndicadorDto>(meta, new Dictionary<string, Link>
+        {
+            ["self"] = Link(NomesDeRota.ObterMeta, id),
+            ["atualizar"] = Link(NomesDeRota.AtualizarMeta, id, HttpMethods.Put),
+            ["remover"] = Link(NomesDeRota.RemoverMeta, id, HttpMethods.Delete)
+        });
+    }
+
+    /// <summary>As metas da clínica, cada uma com os próprios links, e a ação de criar.</summary>
+    public ColecaoDeRecursos<MetaIndicadorDto> ParaMetas(IReadOnlyList<MetaIndicadorDto> metas) =>
+        new(metas.Select(ParaMeta).ToList(), new Dictionary<string, Link>
+        {
+            ["self"] = Link(NomesDeRota.ListarMetas),
+            ["criar"] = Link(NomesDeRota.CriarMeta, metodo: HttpMethods.Post)
+        });
+
     // ------------------------------------------------------------------
     // Comum
     // ------------------------------------------------------------------
+
+    private static readonly (string Relacao, StatusObrigacao Status)[] BaldesDoResumo =
+    {
+        ("cumpridas", StatusObrigacao.Cumprida),
+        ("pararamEmAgendada", StatusObrigacao.Agendada),
+        ("pararamEmRespondida", StatusObrigacao.Respondida),
+        ("pararamEmNotificada", StatusObrigacao.Notificada),
+        ("perdidas", StatusObrigacao.Perdida),
+        ("naoTrabalhadasPrevistas", StatusObrigacao.Prevista),
+        ("naoTrabalhadasCanceladas", StatusObrigacao.Cancelada)
+    };
+
+    private Link ListagemDoGrupo(GrupoCoorte grupo) =>
+        Link(NomesDeRota.ListarObrigacoes, new Dictionary<string, string>
+        {
+            ["grupo"] = CriteriosListagemObrigacoes.TextoDoGrupo(grupo)
+        });
 
     /// <summary>
     /// <c>self</c>, <c>first</c>, <c>prev</c>, <c>next</c> e <c>last</c> de

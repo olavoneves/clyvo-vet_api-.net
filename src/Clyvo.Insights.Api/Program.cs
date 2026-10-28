@@ -69,6 +69,7 @@ builder.Services.AddScoped<ITenantContext, TenantContextHttp>();
 // Hipermídia: um gerador só decide os links de todos os recursos.
 builder.Services.AddScoped<IResolvedorDeRotas, ResolvedorDeRotasHttp>();
 builder.Services.AddScoped<GeradorDeLinks>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 // Enum entra e sai como nome. Ordinal em JSON obriga o cliente a saber que 1 é
 // TaxaCumprimento, e transforma inserir um valor novo no meio do enum numa
