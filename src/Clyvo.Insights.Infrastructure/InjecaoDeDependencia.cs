@@ -23,8 +23,24 @@ public static class InjecaoDeDependencia
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddDbContext<InsightsDbContext>(options =>
-            options.ConfigurarOracle(configuration.GetConnectionString(ConnectionStringOracle)));
+        var connectionString = configuration.GetConnectionString(ConnectionStringOracle);
+
+        // Falha no boot, e não na primeira consulta: sem isto o serviço sobe,
+        // passa no /health e só quebra quando alguém pede um número. E não há
+        // valor padrão de propósito — o padrão que já existiu apontava para o
+        // Oracle da FIAP, e um clone sem configuração acabava lendo o banco
+        // compartilhado sem ninguém ter pedido.
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                $"ConnectionStrings:{ConnectionStringOracle} não configurada. Defina a variável de ambiente " +
+                $"ConnectionStrings__{ConnectionStringOracle} ou, em desenvolvimento, " +
+                $"'dotnet user-secrets set \"ConnectionStrings:{ConnectionStringOracle}\" \"<connection string>\" " +
+                "--project src/Clyvo.Insights.Api'. Ex.: User Id=petflow;Password=<senha>;" +
+                "Data Source=localhost:1521/PETFLOWDB");
+        }
+
+        services.AddDbContext<InsightsDbContext>(options => options.ConfigurarOracle(connectionString));
 
         services.AddScoped<ILeituraDoCoreRepository, LeituraDoCoreRepository>();
         services.AddScoped<IMetaIndicadorRepository, MetaIndicadorRepository>();

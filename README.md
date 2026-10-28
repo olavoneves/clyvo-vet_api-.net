@@ -168,7 +168,7 @@ Obtenha um token no core:
 ```bash
 curl -X POST http://localhost:8080/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"patricia@vidaanimal.com.br","senha":"Clyvo@2026","tipo":"COLABORADOR"}'
+  -d '{"email":"patricia@vidaanimal.com.br","senha":"<senha do usuário de demonstração>","tipo":"COLABORADOR"}'
 ```
 
 ---
@@ -295,24 +295,44 @@ dotnet restore
 dotnet run --project src/Clyvo.Insights.Api
 ```
 
-O perfil `http` do `launchSettings.json` já aponta para os containers locais.
-API em `http://localhost:5240`.
+O perfil `http` do `launchSettings.json` sobe em `Development`, na porta
+`http://localhost:5240`, e lê os segredos dos *user-secrets* (abaixo).
 
 ### Configuração
 
-Segredo nenhum é versionado. O `appsettings.json` carrega a connection string do
-Oracle FIAP com credencial de placeholder; o resto vem de variável de ambiente:
+**Segredo nenhum é versionado.** O `appsettings.json` leva a connection string e
+a chave JWT **vazias**; os valores vêm de variável de ambiente ou, em
+desenvolvimento, de `dotnet user-secrets` (guardados no perfil do usuário, fora
+do repositório).
 
-| Variável | Para quê |
-|---|---|
-| `ConnectionStrings__Oracle` | Oracle do core |
-| `Jwt__Secret` | **a mesma** chave HMAC do core (`JWT_SECRET`) |
-| `Mongo__ConnectionString` | MongoDB das projeções |
-| `Core__BaseUrl` | clyvo-core, só para a sonda de disponibilidade |
-| `Serilog__Arquivo` | caminho do log em arquivo (opcional) |
+| Variável | Obrigatória | Para quê |
+|---|---|---|
+| `ConnectionStrings__Oracle` | sim | Oracle do core. Ex.: `User Id=petflow;Password=<senha>;Data Source=localhost:1521/PETFLOWDB` |
+| `Jwt__Secret` | sim | **a mesma** chave HMAC do core (`JWT_SECRET`) |
+| `Mongo__ConnectionString` | não¹ | MongoDB das projeções |
+| `Core__BaseUrl` | não | clyvo-core, só para a sonda de disponibilidade |
+| `Serilog__Arquivo` | não | caminho do log em arquivo |
 
-A aplicação **recusa a subir** sem `Jwt__Secret`, em vez de aceitar token não
-assinado.
+¹ Sem Mongo a API responde normalmente; só as projeções de saída deixam de ser
+gravadas e `/health/ready` sai *Degraded*.
+
+A aplicação **recusa a subir** sem `ConnectionStrings__Oracle` ou sem
+`Jwt__Secret`, com uma mensagem dizendo qual variável definir. Não há valor
+padrão para nenhuma das duas — em particular, nenhum que aponte para o Oracle da
+FIAP.
+
+Em desenvolvimento, uma vez por máquina:
+
+```bash
+cd src/Clyvo.Insights.Api
+dotnet user-secrets set "ConnectionStrings:Oracle" "User Id=petflow;Password=<senha>;Data Source=localhost:1521/PETFLOWDB"
+dotnet user-secrets set "Jwt:Secret" "<mesma JWT_SECRET do core>"
+dotnet user-secrets set "Mongo:ConnectionString" "mongodb://insights:<senha>@localhost:27017/?authSource=admin"
+```
+
+No Docker, os mesmos valores vêm de um `.env` ao lado do `docker-compose.yaml`
+(ignorado pelo Git): copie o `.env.example` e preencha. Variável ausente faz o
+compose recusar a subir.
 
 ### Migrations
 
@@ -320,7 +340,7 @@ Migration é passo de deploy, não de inicialização: o container não altera s
 ao subir.
 
 ```bash
-ConnectionStrings__Oracle="User Id=petflow;Password=PetFlow2026;Data Source=localhost:1521/PETFLOWDB" \
+ConnectionStrings__Oracle="User Id=petflow;Password=<senha>;Data Source=localhost:1521/PETFLOWDB" \
 dotnet ef database update \
   -p src/Clyvo.Insights.Infrastructure \
   -s src/Clyvo.Insights.Infrastructure
@@ -380,8 +400,8 @@ Para habilitar, com os containers de pé:
 
 ```bash
 CLYVO_TESTES_DE_INFRA=1 \
-ConnectionStrings__Oracle="User Id=petflow;Password=PetFlow2026;Data Source=localhost:1521/PETFLOWDB" \
-Mongo__ConnectionString="mongodb://insights:Insights2026@localhost:27017/?authSource=admin" \
+ConnectionStrings__Oracle="User Id=petflow;Password=<senha>;Data Source=localhost:1521/PETFLOWDB" \
+Mongo__ConnectionString="mongodb://insights:<senha>@localhost:27017/?authSource=admin" \
 dotnet test tests/Clyvo.Insights.Tests.Integration
 ```
 

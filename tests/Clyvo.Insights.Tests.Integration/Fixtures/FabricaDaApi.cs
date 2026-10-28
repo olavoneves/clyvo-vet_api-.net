@@ -45,6 +45,18 @@ public sealed class FabricaDaApi : WebApplicationFactory<Program>
         // montagem do builder, ou seja, cedo demais para uma fonte de
         // configuração acrescentada pelo WebApplicationFactory.
         Environment.SetEnvironmentVariable("Jwt__Secret", SegredoJwt);
+
+        // A API recusa a subir sem connection string. Os repositórios são
+        // trocados por dublês e nada aqui abre conexão: o valor só precisa
+        // existir, e aponta para uma porta onde não há banco. Só é definido
+        // quando ausente — com CLYVO_TESTES_DE_INFRA=1 a variável real é lida
+        // pela fixture de infraestrutura no mesmo processo, e sobrescrevê-la
+        // aqui faria aqueles testes conectarem em lugar nenhum.
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("ConnectionStrings__Oracle")))
+        {
+            Environment.SetEnvironmentVariable(
+                "ConnectionStrings__Oracle", "User Id=sem_banco;Data Source=localhost:1/TESTES_SEM_BANCO");
+        }
         Environment.SetEnvironmentVariable(
             "Mongo__ConnectionString", "mongodb://localhost:27017/?serverSelectionTimeoutMS=200");
     }
