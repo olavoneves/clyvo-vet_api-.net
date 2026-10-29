@@ -123,6 +123,7 @@ public class MapeamentoOracleTests
         Assert.Empty(pendentes);
         Assert.Contains(aplicadas, m => m.EndsWith("CriaMetaIndicador", StringComparison.Ordinal));
         Assert.Contains(aplicadas, m => m.EndsWith("CriaSnapshotCoorte", StringComparison.Ordinal));
+        Assert.Contains(aplicadas, m => m.EndsWith("MapeiaVwObrigacaoDetalhe", StringComparison.Ordinal));
     }
 
     [RequerInfraestrutura]
@@ -139,6 +140,7 @@ public class MapeamentoOracleTests
         Assert.Contains("INS_SNAPSHOT_COORTE", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("VW_CLV_PAINEL_COORTE", script, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("VW_CLV_PAINEL_RECEITA", script, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("VW_CLV_OBRIGACAO_DETALHE", script, StringComparison.OrdinalIgnoreCase);
 
         await Task.CompletedTask;
     }

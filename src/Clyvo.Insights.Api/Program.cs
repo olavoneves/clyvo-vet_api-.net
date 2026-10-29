@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json.Serialization;
 using Clyvo.Insights.Api.Autenticacao;
+using Clyvo.Insights.Api.Hipermidia;
 using Clyvo.Insights.Api.Middlewares;
 using Clyvo.Insights.Api.Observabilidade;
 using Clyvo.Insights.Api.Swagger;
@@ -64,6 +65,11 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantContext, TenantContextHttp>();
+
+// Hipermídia: um gerador só decide os links de todos os recursos.
+builder.Services.AddScoped<IResolvedorDeRotas, ResolvedorDeRotasHttp>();
+builder.Services.AddScoped<GeradorDeLinks>();
+builder.Services.AddSingleton(TimeProvider.System);
 
 // Enum entra e sai como nome. Ordinal em JSON obriga o cliente a saber que 1 é
 // TaxaCumprimento, e transforma inserir um valor novo no meio do enum numa
@@ -210,6 +216,11 @@ builder.Services.AddSwaggerGen(c =>
     }
 
     c.SchemaFilter<ExemplosSchemaFilter>();
+    c.SchemaFilter<RecursoSchemaFilter>();
+
+    // A query string é em camelCase (?ordenarPor=status); sem isto o Swagger
+    // documentaria os parâmetros com o nome da propriedade C#.
+    c.DescribeAllParametersInCamelCase();
 });
 
 var app = builder.Build();

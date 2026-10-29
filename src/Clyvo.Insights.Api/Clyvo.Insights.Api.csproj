@@ -6,6 +6,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <NoWarn>$(NoWarn);1591</NoWarn>
+    <!-- Habilita dotnet user-secrets em Development: os segredos ficam no perfil
+         do usuário, fora do repositório. -->
+    <UserSecretsId>clyvo-insights-api</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
