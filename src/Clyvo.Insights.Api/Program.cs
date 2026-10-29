@@ -86,19 +86,16 @@ builder.Services.AddSingleton(TimeProvider.System);
 // cliente (X-Forwarded-For), o esquema (X-Forwarded-Proto) e o host público
 // (X-Forwarded-Host) — este último é o que faz o host do link ser o de fora.
 //
-// O endereço do proxy não é conhecido de antemão (é o IP que a rede do
-// container der a ele), então a lista de proxies confiáveis fica vazia e vale
-// só o último salto. Um cabeçalho forjado por quem chama direto só muda os
-// links da resposta dele mesmo: nada aqui é cacheado nem decide autorização.
+// Quem pode mandar esses cabeçalhos vem de Proxy:Confiaveis (IPs ou CIDR).
+// Vazio, aceita de qualquer origem só em Development e Testing; nos demais
+// ambientes vale o padrão do ASP.NET, que só confia no loopback.
 // ----------------------------------------------------------------------------
-builder.Services.Configure<ForwardedHeadersOptions>(opcoes =>
-{
-    opcoes.ForwardedHeaders =
-        ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost;
-    opcoes.ForwardLimit = 1;
-    opcoes.KnownNetworks.Clear();
-    opcoes.KnownProxies.Clear();
-});
+builder.Services.AddOptions<ForwardedHeadersOptions>()
+    .Configure<IConfiguration, IHostEnvironment>((opcoes, configuracao, ambiente) =>
+        ProxiesConfiaveis.Configurar(
+            opcoes,
+            configuracao.GetSection(ProxiesConfiaveis.Secao).Get<string[]>() ?? Array.Empty<string>(),
+            ambiente.IsDevelopment() || ambiente.IsEnvironment("Testing")));
 
 // Enum entra e sai como nome. Ordinal em JSON obriga o cliente a saber que 1 é
 // TaxaCumprimento, e transforma inserir um valor novo no meio do enum numa

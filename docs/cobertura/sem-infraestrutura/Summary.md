@@ -2,32 +2,32 @@
 
 |||
 |:---|:---|
-| Generated on: | 28/10/2026 - 22:32:37 |
-| Coverage date: | 28/10/2026 - 22:32:31 - 28/10/2026 - 22:32:36 |
+| Generated on: | 29/10/2026 - 06:42:52 |
+| Coverage date: | 29/10/2026 - 06:42:44 - 29/10/2026 - 06:42:50 |
 | Parser: | MultiReport (2x Cobertura) |
 | Assemblies: | 4 |
-| Classes: | 87 |
-| Files: | 80 |
-| **Line coverage:** | 89% (2751 of 3091) |
-| Covered lines: | 2751 |
+| Classes: | 88 |
+| Files: | 81 |
+| **Line coverage:** | 89.1% (2781 of 3121) |
+| Covered lines: | 2781 |
 | Uncovered lines: | 340 |
-| Coverable lines: | 3091 |
-| Total lines: | 6302 |
-| **Branch coverage:** | 73.4% (285 of 388) |
-| Covered branches: | 285 |
-| Total branches: | 388 |
+| Coverable lines: | 3121 |
+| Total lines: | 6366 |
+| **Branch coverage:** | 74.5% (304 of 408) |
+| Covered branches: | 304 |
+| Total branches: | 408 |
 | **Method coverage:** | [Feature is only available for sponsors](https://reportgenerator.io/pro) |
 
 # Risk Hotspots
 
 | **Assembly** | **Class** | **Method** | **Crap Score** | **Cyclomatic complexity** |
 |:---|:---|:---|---:|---:|
-| Clyvo.Insights.Infrastructure | Clyvo.Insights.Infrastructure.Persistencia.Repositorios.DetalheObrigacaoRepository | Filtrar(...) | 600 | 24 || Clyvo.Insights.Application | Clyvo.Insights.Application.Obrigacoes.CriteriosListagemObrigacoes | APartirDe(...) | 50 | 50 || Clyvo.Insights.Application | Clyvo.Insights.Application.Obrigacoes.CriteriosListagemObrigacoes | ParaParametrosDeConsulta() | 24 | 24 || Clyvo.Insights.Api | Clyvo.Insights.Api.Swagger.ExemplosSchemaFilter | Apply(...) | 22 | 22 || Clyvo.Insights.Api | Program | <Main>$(...) | 20 | 20 || Clyvo.Insights.Api | Clyvo.Insights.Api.Observabilidade.ColetorDeMetricas | Registrar(...) | 16 | 16 |
+| Clyvo.Insights.Infrastructure | Clyvo.Insights.Infrastructure.Persistencia.Repositorios.DetalheObrigacaoRepository | Filtrar(...) | 600 | 24 || Clyvo.Insights.Application | Clyvo.Insights.Application.Obrigacoes.CriteriosListagemObrigacoes | APartirDe(...) | 50 | 50 || Clyvo.Insights.Api | Program | <Main>$(...) | 24 | 24 || Clyvo.Insights.Application | Clyvo.Insights.Application.Obrigacoes.CriteriosListagemObrigacoes | ParaParametrosDeConsulta() | 24 | 24 || Clyvo.Insights.Api | Clyvo.Insights.Api.Swagger.ExemplosSchemaFilter | Apply(...) | 22 | 22 || Clyvo.Insights.Api | Clyvo.Insights.Api.Hipermidia.ProxiesConfiaveis | Configurar(...) | 16 | 16 || Clyvo.Insights.Api | Clyvo.Insights.Api.Observabilidade.ColetorDeMetricas | Registrar(...) | 16 | 16 |
 # Coverage
 
 | **Name** | **Covered** | **Uncovered** | **Coverable** | **Total** | **Line coverage** | **Covered** | **Total** | **Branch coverage** |
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Clyvo.Insights.Api** | **815** | **32** | **847** | **2322** | **96.2%** | **119** | **158** | **75.3%** |
+| **Clyvo.Insights.Api** | **845** | **32** | **877** | **2386** | **96.3%** | **138** | **178** | **77.5%** |
 | Clyvo.Insights.Api.Autenticacao.OpcoesJwt | 1 | 0 | 1 | 17 | 100% | 0 | 0 |  |
 | Clyvo.Insights.Api.Autenticacao.TenantContextHttp | 9 | 3 | 12 | 40 | 75% | 3 | 6 | 50% |
 | Clyvo.Insights.Api.Controllers.CoorteController | 9 | 0 | 9 | 55 | 100% | 0 | 0 |  |
@@ -38,6 +38,7 @@
 | Clyvo.Insights.Api.Hipermidia.GeradorDeLinks | 90 | 0 | 90 | 202 | 100% | 6 | 6 | 100% |
 | Clyvo.Insights.Api.Hipermidia.Link | 5 | 0 | 5 | 125 | 100% | 0 | 0 |  |
 | Clyvo.Insights.Api.Hipermidia.PaginaDeRecursos<T> | 7 | 0 | 7 | 125 | 100% | 0 | 0 |  |
+| Clyvo.Insights.Api.Hipermidia.ProxiesConfiaveis | 32 | 0 | 32 | 67 | 100% | 16 | 16 | 100% |
 | Clyvo.Insights.Api.Hipermidia.Recurso<T> | 7 | 0 | 7 | 125 | 100% | 0 | 0 |  |
 | Clyvo.Insights.Api.Hipermidia.ResolvedorDeRotasHttp | 17 | 0 | 17 | 49 | 100% | 6 | 8 | 75% |
 | Clyvo.Insights.Api.Middlewares.ManipuladorGlobalDeExcecoes | 58 | 15 | 73 | 132 | 79.4% | 14 | 20 | 70% |
@@ -47,7 +48,7 @@
 | Clyvo.Insights.Api.Observabilidade.RespostaDeSaude | 29 | 1 | 30 | 59 | 96.6% | 1 | 2 | 50% |
 | Clyvo.Insights.Api.Swagger.ExemplosSchemaFilter | 191 | 0 | 191 | 257 | 100% | 30 | 30 | 100% |
 | Clyvo.Insights.Api.Swagger.RecursoSchemaFilter | 20 | 0 | 20 | 43 | 100% | 4 | 4 | 100% |
-| Program | 159 | 6 | 165 | 306 | 96.3% | 13 | 20 | 65% |
+| Program | 157 | 6 | 163 | 303 | 96.3% | 16 | 24 | 66.6% |
 | **Clyvo.Insights.Application** | **556** | **7** | **563** | **1623** | **98.7%** | **110** | **112** | **98.2%** |
 | Clyvo.Insights.Application.Coortes.AnaliseCoorteDto | 12 | 0 | 12 | 59 | 100% | 0 | 0 |  |
 | Clyvo.Insights.Application.Coortes.CoorteDto | 6 | 0 | 6 | 59 | 100% | 0 | 0 |  |

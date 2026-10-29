@@ -1,7 +1,12 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text.Json;
 using Clyvo.Insights.Tests.Integration.Fixtures;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Clyvo.Insights.Tests.Integration;
 
@@ -74,6 +79,42 @@ public class ProxyEReleaseTests
             href => Assert.StartsWith("http://localhost/api/insights/obrigacoes", href));
     }
 
+    [Theory]
+    [InlineData(null, "http://localhost")]
+    [InlineData("10.0.0.0/8", "http://localhost")]
+    [InlineData("203.0.113.0/24", "https://insights.clyvo.example")]
+    [InlineData("203.0.113.9", "https://insights.clyvo.example")]
+    public async Task ListarObrigacoes_EmProducao_SoAceitaOsCabecalhosDeProxyConfiavel(
+        string? proxyConfiavel, string origemEsperada)
+    {
+        // Arrange — a requisição chega do IP 203.0.113.9, como se viesse do proxy
+        using var producao = _api.WithWebHostBuilder(b =>
+        {
+            b.UseEnvironment("Production");
+            if (proxyConfiavel is not null)
+            {
+                b.UseSetting("Proxy:Confiaveis:0", proxyConfiavel);
+            }
+
+            b.ConfigureServices(s => s.AddSingleton<IStartupFilter>(new ChamadorComIp("203.0.113.9")));
+        });
+
+        var cliente = producao.CreateClient();
+        cliente.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", FabricaDaApi.TokenDaClinica(DadosCanonicos.ClinicaComCoorte));
+
+        var requisicao = new HttpRequestMessage(HttpMethod.Get, "/api/insights/obrigacoes");
+        requisicao.Headers.Add("X-Forwarded-Proto", "https");
+        requisicao.Headers.Add("X-Forwarded-Host", HostPublico);
+
+        // Act
+        var json = await EnviarAsync(cliente, requisicao);
+
+        // Assert
+        Assert.All(Hrefs(json.GetProperty("_links")),
+            href => Assert.StartsWith($"{origemEsperada}/api/insights/obrigacoes", href));
+    }
+
     [Fact]
     public async Task Swagger_DocumentoDaApi_DeclaraAVersaoDoAssembly()
     {
@@ -104,4 +145,28 @@ public class ProxyEReleaseTests
 
     private static string Href(JsonElement links, string relacao) =>
         links.GetProperty(relacao).GetProperty("href").GetString()!;
+
+    /// <summary>
+    /// O TestServer não preenche o IP remoto; sem ele o middleware de
+    /// cabeçalhos encaminhados não tem o que comparar com a lista.
+    /// </summary>
+    private sealed class ChamadorComIp : IStartupFilter
+    {
+        private readonly IPAddress _ip;
+
+        public ChamadorComIp(string ip)
+        {
+            _ip = IPAddress.Parse(ip);
+        }
+
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> proximo) => app =>
+        {
+            app.Use((contexto, seguinte) =>
+            {
+                contexto.Connection.RemoteIpAddress = _ip;
+                return seguinte(contexto);
+            });
+            proximo(app);
+        };
+    }
 }
