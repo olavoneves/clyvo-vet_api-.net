@@ -117,6 +117,82 @@ namespace Clyvo.Insights.Infrastructure.Persistencia.Migrations
                     b.ToTable("INS_SNAPSHOT_COORTE", (string)null);
                 });
 
+            modelBuilder.Entity("Clyvo.Insights.Infrastructure.Persistencia.Leitura.ObrigacaoDetalheView", b =>
+                {
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .HasColumnType("NVARCHAR2(2000)")
+                        .HasColumnName("DS_CATEGORIA");
+
+                    b.Property<DateTime>("DataPrevista")
+                        .HasColumnType("DATE")
+                        .HasColumnName("DT_PREVISTA");
+
+                    b.Property<string>("Etapa")
+                        .IsRequired()
+                        .HasColumnType("NVARCHAR2(2000)")
+                        .HasColumnName("NM_ETAPA");
+
+                    b.Property<string>("GrupoControle")
+                        .IsRequired()
+                        .HasColumnType("NVARCHAR2(2000)")
+                        .HasColumnName("FL_GRUPO_CONTROLE");
+
+                    b.Property<long>("IdClinica")
+                        .HasColumnType("NUMBER(19)")
+                        .HasColumnName("ID_CLINICA");
+
+                    b.Property<long>("IdObrigacao")
+                        .HasColumnType("NUMBER(19)")
+                        .HasColumnName("ID_OBRIGACAO");
+
+                    b.Property<long>("IdPet")
+                        .HasColumnType("NUMBER(19)")
+                        .HasColumnName("ID_PET");
+
+                    b.Property<DateTime>("JanelaFim")
+                        .HasColumnType("DATE")
+                        .HasColumnName("DT_JANELA_FIM");
+
+                    b.Property<DateTime>("JanelaInicio")
+                        .HasColumnType("DATE")
+                        .HasColumnName("DT_JANELA_INICIO");
+
+                    b.Property<string>("NomePet")
+                        .IsRequired()
+                        .HasColumnType("NVARCHAR2(2000)")
+                        .HasColumnName("NM_PET");
+
+                    b.Property<string>("NomeTutor")
+                        .IsRequired()
+                        .HasColumnType("NVARCHAR2(2000)")
+                        .HasColumnName("NM_TUTOR");
+
+                    b.Property<string>("Protocolo")
+                        .IsRequired()
+                        .HasColumnType("NVARCHAR2(2000)")
+                        .HasColumnName("NM_PROTOCOLO");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("NVARCHAR2(2000)")
+                        .HasColumnName("DS_STATUS");
+
+                    b.Property<decimal?>("ValorEstimado")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("DECIMAL(10,2)")
+                        .HasColumnName("NR_VALOR_ESTIMADO");
+
+                    b.Property<decimal?>("ValorRealizado")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("DECIMAL(10,2)")
+                        .HasColumnName("NR_VALOR_REALIZADO");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("VW_CLV_OBRIGACAO_DETALHE", (string)null);
+                });
+
             modelBuilder.Entity("Clyvo.Insights.Infrastructure.Persistencia.Leitura.PainelCoorteView", b =>
                 {
                     b.Property<string>("Grupo")

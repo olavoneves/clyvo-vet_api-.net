@@ -9,13 +9,17 @@
 #
 #  Suba o core primeiro:
 #      cd ../../Clyvo-Vet.java/server && docker compose up -d
-#  Depois este:
+#  Depois este, com as senhas num .env ao lado deste arquivo (fora do Git —
+#  copie o .env.example e preencha com os valores do compose do core):
+#      cp .env.example .env
 #      docker compose up -d
+#  Variável ausente faz o compose recusar a subir, em vez de criar um Mongo
+#  com senha vazia.
 #
 #  As migrations INS_ não são aplicadas no start do container. Migration é passo
 #  de deploy, não de inicialização: um processo que altera schema ao subir
 #  aplica DDL toda vez que o orquestrador reinicia uma réplica.
-#      ConnectionStrings__Oracle="User Id=petflow;Password=PetFlow2026;Data Source=localhost:1521/PETFLOWDB" \
+#      ConnectionStrings__Oracle="User Id=petflow;Password=<senha>;Data Source=localhost:1521/PETFLOWDB" \
 #      dotnet ef database update -p src/Clyvo.Insights.Infrastructure -s src/Clyvo.Insights.Infrastructure
 # ============================================================
 
@@ -33,7 +37,7 @@ services:
     container_name: mongo-clyvoinsights
     environment:
       - MONGO_INITDB_ROOT_USERNAME=insights
-      - MONGO_INITDB_ROOT_PASSWORD=Insights2026
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:?defina MONGO_PASSWORD no .env}
       - MONGO_INITDB_DATABASE=clyvo_insights
     ports:
       - "27017:27017"
@@ -62,11 +66,11 @@ services:
     container_name: api-clyvoinsights
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__Oracle=User Id=petflow;Password=PetFlow2026;Data Source=oracle-db:1521/PETFLOWDB
+      - ConnectionStrings__Oracle=User Id=petflow;Password=${ORACLE_APP_PASSWORD:?defina ORACLE_APP_PASSWORD no .env};Data Source=oracle-db:1521/PETFLOWDB
       # A MESMA chave do core. O insights não emite token, só valida o que o
       # core emitiu — chaves diferentes fazem todo token legítimo virar 401.
-      - Jwt__Secret=clyvovet-2026-local-dev-secret-key-docker!!
-      - Mongo__ConnectionString=mongodb://insights:Insights2026@mongo:27017/?authSource=admin
+      - Jwt__Secret=${JWT_SECRET:?defina JWT_SECRET no .env}
+      - Mongo__ConnectionString=mongodb://insights:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
       - Mongo__Database=clyvo_insights
       # Sonda de disponibilidade do emissor de tokens. Dentro da rede, a API
       # Java atende em api-java, que e o nome do servico no compose do core.

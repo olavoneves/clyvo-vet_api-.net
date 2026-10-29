@@ -30,4 +30,25 @@ public static class ObrigacoesMapeamentos
             funil.ValorPerdido,
             funil.MesInicio,
             funil.MesFim);
+
+    /// <summary>
+    /// Projeta a linha da view na resposta. As datas viram <c>DateOnly</c>: o
+    /// core grava DATE sem hora significativa, e devolver meia-noite com fuso
+    /// sugeriria uma precisão que o dado não tem.
+    /// </summary>
+    public static ObrigacaoDto ParaDto(this LinhaObrigacao linha) =>
+        new(linha.IdObrigacao,
+            linha.IdPet,
+            linha.NomePet,
+            linha.NomeTutor,
+            linha.Protocolo,
+            linha.Categoria,
+            linha.Etapa,
+            linha.Status.Codigo(),
+            linha.Grupo.ToString().ToUpperInvariant(),
+            DateOnly.FromDateTime(linha.DataPrevista),
+            DateOnly.FromDateTime(linha.JanelaInicio),
+            DateOnly.FromDateTime(linha.JanelaFim),
+            linha.ValorEstimado,
+            linha.ValorRealizado);
 }

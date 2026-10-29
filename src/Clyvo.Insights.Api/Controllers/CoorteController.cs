@@ -1,3 +1,4 @@
+using Clyvo.Insights.Api.Hipermidia;
 using Clyvo.Insights.Application.Coortes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,10 +14,12 @@ namespace Clyvo.Insights.Api.Controllers;
 public sealed class CoorteController : ControllerBase
 {
     private readonly ObterAnaliseCoorte _obterAnaliseCoorte;
+    private readonly GeradorDeLinks _links;
 
-    public CoorteController(ObterAnaliseCoorte obterAnaliseCoorte)
+    public CoorteController(ObterAnaliseCoorte obterAnaliseCoorte, GeradorDeLinks links)
     {
         _obterAnaliseCoorte = obterAnaliseCoorte;
+        _links = links;
     }
 
     /// <summary>
@@ -31,19 +34,22 @@ public sealed class CoorteController : ControllerBase
     /// Quando um dos braços ainda não tem obrigação resolvida, a resposta vem
     /// com <c>disponivel: false</c> e os números zerados — não é erro, é
     /// ausência de contrafactual.
+    ///
+    /// Os links <c>obrigacoesTratamento</c> e <c>obrigacoesControle</c> levam à
+    /// listagem de obrigações filtrada por cada braço.
     /// </remarks>
-    /// <response code="200">Análise da clínica do token.</response>
+    /// <response code="200">Análise da clínica do token, com <c>_links</c>.</response>
     /// <response code="401">Token ausente, expirado ou com assinatura inválida.</response>
     /// <response code="403">Token válido mas sem o claim de clínica.</response>
-    [HttpGet]
+    [HttpGet(Name = NomesDeRota.ObterCoorte)]
     [Authorize]
-    [ProducesResponseType(typeof(AnaliseCoorteDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(Recurso<AnaliseCoorteDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<AnaliseCoorteDto>> Obter(CancellationToken cancellationToken)
+    public async Task<ActionResult<Recurso<AnaliseCoorteDto>>> Obter(CancellationToken cancellationToken)
     {
         var analise = await _obterAnaliseCoorte.ExecutarAsync(cancellationToken);
 
-        return Ok(analise);
+        return Ok(_links.ParaAnaliseDeCoorte(analise));
     }
 }
