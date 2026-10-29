@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Clyvo.Insights.Api.Hipermidia;
 using Clyvo.Insights.Application.Coortes;
 using Clyvo.Insights.Application.Metas;
@@ -190,6 +191,102 @@ public class MetasEndpointTests : IClassFixture<FabricaDaApi>
         Assert.Equal(75m, avaliada.LimiarPercentual);
         Assert.Equal(analise.Tratado.TaxaCumprimentoPercentual, avaliada.ValorApurado);
         Assert.True(avaliada.AbaixoDoLimiar);
+    }
+
+    [Fact]
+    public async Task ListarMetas_ComMetas_TemLinksNaColecaoEEmCadaMetaComOMetodo()
+    {
+        // Arrange
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var criada = await CriarAsync(cliente, "TaxaCumprimento", 55m);
+
+        // Act
+        var resposta = await cliente.GetAsync(Rota);
+        using var json = JsonDocument.Parse(await resposta.Content.ReadAsStringAsync());
+        var raiz = json.RootElement;
+
+        // Assert — a coleção
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        var daColecao = raiz.GetProperty("_links");
+        Assert.Equal("http://localhost/api/insights/metas", daColecao.GetProperty("self").GetProperty("href").GetString());
+        Assert.Equal("http://localhost/api/insights/metas", daColecao.GetProperty("criar").GetProperty("href").GetString());
+        Assert.Equal("POST", daColecao.GetProperty("criar").GetProperty("method").GetString());
+
+        // e cada meta
+        var daMeta = Assert.Single(raiz.GetProperty("itens").EnumerateArray()).GetProperty("_links");
+        var urlDaMeta = $"http://localhost/api/insights/metas/{criada.Id}";
+        Assert.Equal(urlDaMeta, daMeta.GetProperty("self").GetProperty("href").GetString());
+        Assert.Equal(urlDaMeta, daMeta.GetProperty("atualizar").GetProperty("href").GetString());
+        Assert.Equal("PUT", daMeta.GetProperty("atualizar").GetProperty("method").GetString());
+        Assert.Equal(urlDaMeta, daMeta.GetProperty("remover").GetProperty("href").GetString());
+        Assert.Equal("DELETE", daMeta.GetProperty("remover").GetProperty("method").GetString());
+    }
+
+    [Fact]
+    public async Task CriarMeta_ComCorpoValido_DevolveLinksELocationApontandoParaAMeta()
+    {
+        // Arrange
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+
+        // Act
+        var resposta = await cliente.PostAsJsonAsync(
+            Rota, new { indicador = "DeltaPontosPercentuais", limiarPercentual = 15m });
+        var recurso = await resposta.Content.ReadFromJsonAsync<Recurso<MetaIndicadorDto>>(FabricaDaApi.Json);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
+        Assert.Equal($"http://localhost/api/insights/metas/{recurso!.Dados.Id}", resposta.Headers.Location?.ToString());
+        Assert.Equal(resposta.Headers.Location?.ToString(), recurso.Links["self"].Href);
+        Assert.Equal("PUT", recurso.Links["atualizar"].Metodo);
+    }
+
+    [Fact]
+    public async Task AtualizarMeta_ComMetaExistente_DevolveOsLinks()
+    {
+        // Arrange
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var criada = await CriarAsync(cliente, "TaxaCumprimento", 55m);
+
+        // Act
+        var resposta = await cliente.PutAsJsonAsync($"{Rota}/{criada.Id}", new { limiarPercentual = 60m });
+        var recurso = await resposta.Content.ReadFromJsonAsync<Recurso<MetaIndicadorDto>>(FabricaDaApi.Json);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        Assert.Equal(60m, recurso!.Dados.LimiarPercentual);
+        Assert.Equal(new[] { "atualizar", "remover", "self" }, recurso.Links.Keys.Order());
+    }
+
+    [Fact]
+    public async Task ObterMeta_ComMetaExistente_Retorna200ComSelfApontandoParaSiMesma()
+    {
+        // Arrange
+        var cliente = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var criada = await CriarAsync(cliente, "TaxaCumprimento", 55m);
+
+        // Act
+        var resposta = await cliente.GetAsync($"{Rota}/{criada.Id}");
+        var recurso = await resposta.Content.ReadFromJsonAsync<Recurso<MetaIndicadorDto>>(FabricaDaApi.Json);
+
+        // Assert
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        Assert.Equal(criada.Id, recurso!.Dados.Id);
+        Assert.Equal($"http://localhost/api/insights/metas/{criada.Id}", recurso.Links["self"].Href);
+    }
+
+    [Fact]
+    public async Task ObterMeta_DeOutraClinica_Retorna404()
+    {
+        // Arrange
+        var daClinica = _api.ClienteDaClinica(DadosCanonicos.ClinicaComCoorte);
+        var daVizinha = _api.ClienteDaClinica(DadosCanonicos.ClinicaVizinha);
+        var criada = await CriarAsync(daClinica, "TaxaCumprimento", 55m);
+
+        // Act
+        var resposta = await daVizinha.GetAsync($"{Rota}/{criada.Id}");
+
+        // Assert
+        Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
     }
 
     private static async Task<MetaIndicadorDto> CriarAsync(HttpClient cliente, string indicador, decimal limiar)

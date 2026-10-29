@@ -24,6 +24,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Clyvo.Insights.Domain\Clyvo.Insights.Domain.csproj" />
     <ProjectReference Include="..\..\src\Clyvo.Insights.Application\Clyvo.Insights.Application.csproj" />
+    <ProjectReference Include="..\..\src\Clyvo.Insights.Api\Clyvo.Insights.Api.csproj" />
   </ItemGroup>
 
 </Project>
