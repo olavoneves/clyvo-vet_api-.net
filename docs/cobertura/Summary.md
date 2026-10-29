@@ -2,20 +2,20 @@
 
 |||
 |:---|:---|
-| Generated on: | 28/10/2026 - 21:02:43 |
-| Coverage date: | 28/10/2026 - 21:02:38 - 28/10/2026 - 21:02:40 |
+| Generated on: | 28/10/2026 - 21:10:22 |
+| Coverage date: | 28/10/2026 - 21:10:19 - 28/10/2026 - 21:10:21 |
 | Parser: | MultiReport (2x Cobertura) |
 | Assemblies: | 4 |
 | Classes: | 87 |
 | Files: | 80 |
-| **Line coverage:** | 52.9% (1545 of 2919) |
-| Covered lines: | 1545 |
+| **Line coverage:** | 53.8% (1601 of 2975) |
+| Covered lines: | 1601 |
 | Uncovered lines: | 1374 |
-| Coverable lines: | 2919 |
-| Total lines: | 6069 |
-| **Branch coverage:** | 69.8% (253 of 362) |
-| Covered branches: | 253 |
-| Total branches: | 362 |
+| Coverable lines: | 2975 |
+| Total lines: | 6140 |
+| **Branch coverage:** | 70.5% (261 of 370) |
+| Covered branches: | 261 |
+| Total branches: | 370 |
 | **Method coverage:** | [Feature is only available for sponsors](https://reportgenerator.io/pro) |
 
 # Risk Hotspots
@@ -27,7 +27,7 @@
 
 | **Name** | **Covered** | **Uncovered** | **Coverable** | **Total** | **Line coverage** | **Covered** | **Total** | **Branch coverage** |
 |:---|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Clyvo.Insights.Api** | **643** | **32** | **675** | **2089** | **95.2%** | **93** | **132** | **70.4%** |
+| **Clyvo.Insights.Api** | **699** | **32** | **731** | **2160** | **95.6%** | **101** | **140** | **72.1%** |
 | Clyvo.Insights.Api.Autenticacao.OpcoesJwt | 1 | 0 | 1 | 17 | 100% | 0 | 0 |  |
 | Clyvo.Insights.Api.Autenticacao.TenantContextHttp | 9 | 3 | 12 | 40 | 75% | 3 | 6 | 50% |
 | Clyvo.Insights.Api.Controllers.CoorteController | 9 | 0 | 9 | 55 | 100% | 0 | 0 |  |
@@ -45,7 +45,7 @@
 | Clyvo.Insights.Api.Observabilidade.CorrelacaoDeRequisicao | 24 | 2 | 26 | 87 | 92.3% | 4 | 10 | 40% |
 | Clyvo.Insights.Api.Observabilidade.EnriquecedorDeTrace | 8 | 2 | 10 | 36 | 80% | 1 | 2 | 50% |
 | Clyvo.Insights.Api.Observabilidade.RespostaDeSaude | 29 | 1 | 30 | 59 | 96.6% | 1 | 2 | 50% |
-| Clyvo.Insights.Api.Swagger.ExemplosSchemaFilter | 30 | 0 | 30 | 57 | 100% | 4 | 4 | 100% |
+| Clyvo.Insights.Api.Swagger.ExemplosSchemaFilter | 86 | 0 | 86 | 128 | 100% | 12 | 12 | 100% |
 | Clyvo.Insights.Api.Swagger.RecursoSchemaFilter | 20 | 0 | 20 | 43 | 100% | 4 | 4 | 100% |
 | Program | 148 | 6 | 154 | 273 | 96.1% | 13 | 20 | 65% |
 | **Clyvo.Insights.Application** | **556** | **7** | **563** | **1623** | **98.7%** | **110** | **112** | **98.2%** |
