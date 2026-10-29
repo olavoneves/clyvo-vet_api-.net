@@ -11,6 +11,7 @@ using Clyvo.Insights.Application.Abstracoes;
 using Clyvo.Insights.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -21,6 +22,11 @@ using Serilog;
 using Serilog.Formatting.Compact;
 
 const string NomeDoServico = "clyvo-insights";
+
+// Do <Version> do Directory.Build.props. Lida uma vez e usada pelo
+// OpenTelemetry e pelo Swagger, para os dois reportarem a mesma versão.
+var versaoDoServico = Assembly.GetExecutingAssembly()
+    .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "0.0.0";
 
 // O sufixo vazio antes da extensao e onde o Serilog encaixa a data: o arquivo
 // do dia vira clyvo-insights-20260908.log.
@@ -71,6 +77,26 @@ builder.Services.AddScoped<IResolvedorDeRotas, ResolvedorDeRotasHttp>();
 builder.Services.AddScoped<GeradorDeLinks>();
 builder.Services.AddSingleton(TimeProvider.System);
 
+// ----------------------------------------------------------------------------
+// Atrás de proxy reverso
+//
+// Os _links são absolutos e montados com o esquema e o host da requisição. Atrás
+// de um proxy que termina o TLS, sem isto a API veria http://<container>:8081 e
+// devolveria links que o cliente não alcança. O proxy informa o endereço do
+// cliente (X-Forwarded-For), o esquema (X-Forwarded-Proto) e o host público
+// (X-Forwarded-Host) — este último é o que faz o host do link ser o de fora.
+//
+// Quem pode mandar esses cabeçalhos vem de Proxy:Confiaveis (IPs ou CIDR).
+// Vazio, aceita de qualquer origem só em Development e Testing; nos demais
+// ambientes vale o padrão do ASP.NET, que só confia no loopback.
+// ----------------------------------------------------------------------------
+builder.Services.AddOptions<ForwardedHeadersOptions>()
+    .Configure<IConfiguration, IHostEnvironment>((opcoes, configuracao, ambiente) =>
+        ProxiesConfiaveis.Configurar(
+            opcoes,
+            configuracao.GetSection(ProxiesConfiaveis.Secao).Get<string[]>() ?? Array.Empty<string>(),
+            ambiente.IsDevelopment() || ambiente.IsEnvironment("Testing")));
+
 // Enum entra e sai como nome. Ordinal em JSON obriga o cliente a saber que 1 é
 // TaxaCumprimento, e transforma inserir um valor novo no meio do enum numa
 // quebra silenciosa de contrato.
@@ -114,7 +140,7 @@ builder.Services.AddSingleton<ColetorDeMetricas>();
 builder.Services.AddOpenTelemetry()
     .ConfigureResource(recurso => recurso.AddService(
         serviceName: NomeDoServico,
-        serviceVersion: Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "1.0.0"))
+        serviceVersion: versaoDoServico))
     .WithTracing(tracing => tracing
         .AddAspNetCoreInstrumentation(opcoes =>
             // Health check bate a cada poucos segundos e produziria mais span
@@ -177,7 +203,7 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "Clyvo Insights API",
-        Version = "v1",
+        Version = versaoDoServico,
         Description = "Leitura e analise de coorte do Clyvo Vet — FIAP Challenge 2026. " +
                       "Consome as views publicadas pelo clyvo-core e responde quanto da " +
                       "receita da clinica e atribuivel ao produto, e nao a inercia dos tutores."
@@ -224,6 +250,10 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 var app = builder.Build();
+
+// Antes de tudo que lê esquema, host ou IP do cliente — log de requisição,
+// geração de links e redirecionamentos.
+app.UseForwardedHeaders();
 
 // Resolvido agora, e não na primeira chamada a /metrics: o MeterListener começa
 // a escutar quando o coletor é construído, e um singleton preguiçoso perderia

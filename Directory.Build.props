@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    Versão única da solução. O OpenTelemetry (service.version) e o documento do
+    Swagger leem daqui, pela versão informacional do assembly da API. Sobe junto
+    com a tag de release e com o CHANGELOG.md.
+  -->
+  <PropertyGroup>
+    <Version>1.2.1</Version>
+    <!-- Sem o "+<commit>" que o SDK acrescenta: a versão publicada é a da tag. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+</Project>

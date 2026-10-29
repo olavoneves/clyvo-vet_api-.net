@@ -103,6 +103,36 @@ public class HipermidiaEndpointTests
         Assert.True(paginaDeObrigacoes.Value.GetProperty("properties").TryGetProperty("_links", out _));
     }
 
+    [Theory]
+    [InlineData("/api/insights/obrigacoes", "self", "next")]
+    [InlineData("/api/insights/obrigacoes/{id}", "self")]
+    [InlineData("/api/insights/obrigacoes/resumo", "self", "pararamEmNotificada")]
+    [InlineData("/api/insights/coorte", "self", "obrigacoesControle")]
+    [InlineData("/api/insights/metas", "self", "criar")]
+    [InlineData("/api/insights/metas/{id}", "self", "atualizar", "remover")]
+    public async Task Swagger_RespostaDeCadaGet_TemExemploComLinks(string caminho, params string[] relacoes)
+    {
+        // Arrange
+        var cliente = _api.CreateClient();
+        var json = await GetJsonAsync(cliente, "/swagger/v1/swagger.json");
+
+        // Act — segue o $ref da resposta 200 até o schema em components
+        var referencia = json.GetProperty("paths").GetProperty(caminho).GetProperty("get")
+            .GetProperty("responses").GetProperty("200").GetProperty("content")
+            .GetProperty("application/json").GetProperty("schema").GetProperty("$ref").GetString()!;
+        var esquema = json.GetProperty("components").GetProperty("schemas")
+            .GetProperty(referencia.Split('/').Last());
+
+        // Assert
+        Assert.True(esquema.TryGetProperty("example", out var exemplo), $"{caminho} sem exemplo");
+        var links = exemplo.GetProperty("_links");
+
+        foreach (var relacao in relacoes)
+        {
+            Assert.StartsWith("http", Href(links, relacao));
+        }
+    }
+
     private static async Task<JsonElement> GetJsonAsync(HttpClient cliente, string url)
     {
         var resposta = await cliente.GetAsync(url);

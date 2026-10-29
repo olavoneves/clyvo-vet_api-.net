@@ -1,5 +1,6 @@
 using Clyvo.Insights.Api.Hipermidia;
 using Clyvo.Insights.Application.Coortes;
+using Clyvo.Insights.Application.Metas;
 using Clyvo.Insights.Application.Obrigacoes;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
@@ -22,19 +23,11 @@ public sealed class ExemplosSchemaFilter : ISchemaFilter
     {
         if (context.Type == typeof(AnaliseCoorteDto))
         {
-            schema.Example = new OpenApiObject
-            {
-                ["idClinica"] = new OpenApiLong(23),
-                ["disponivel"] = new OpenApiBoolean(true),
-                ["motivoIndisponibilidade"] = new OpenApiNull(),
-                ["deltaPontosPercentuais"] = new OpenApiDouble(25.07),
-                ["consultasAtribuiveis"] = new OpenApiDouble(680.66),
-                ["receitaRecuperada"] = new OpenApiDouble(138671.07),
-                ["receitaEstimavel"] = new OpenApiBoolean(true),
-                ["ticketMedio"] = new OpenApiDouble(203.73),
-                ["tratado"] = ExemploDeCoorte("TRATADO", 2715, 1601, 58.97, 218),
-                ["controle"] = ExemploDeCoorte("CONTROLE", 354, 120, 33.90, 27)
-            };
+            schema.Example = ExemploDeAnalise(comLinks: false);
+        }
+        else if (context.Type == typeof(Recurso<AnaliseCoorteDto>))
+        {
+            schema.Example = ExemploDeAnalise(comLinks: true);
         }
         else if (context.Type == typeof(CoorteDto))
         {
@@ -52,11 +45,32 @@ public sealed class ExemplosSchemaFilter : ISchemaFilter
         {
             schema.Example = ExemploDePagina();
         }
+        else if (context.Type == typeof(ResumoObrigacoesDto))
+        {
+            schema.Example = ExemploDeResumo(comLinks: false);
+        }
+        else if (context.Type == typeof(Recurso<ResumoObrigacoesDto>))
+        {
+            schema.Example = ExemploDeResumo(comLinks: true);
+        }
+        else if (context.Type == typeof(MetaIndicadorDto))
+        {
+            schema.Example = ExemploDeMeta(61, "TaxaCumprimento", 55, comLinks: false);
+        }
+        else if (context.Type == typeof(Recurso<MetaIndicadorDto>))
+        {
+            schema.Example = ExemploDeMeta(61, "TaxaCumprimento", 55, comLinks: true);
+        }
+        else if (context.Type == typeof(ColecaoDeRecursos<MetaIndicadorDto>))
+        {
+            schema.Example = ExemploDeColecaoDeMetas();
+        }
     }
 
     // Uma obrigação real da clínica 581 do banco de demonstração, e a página 2
     // da listagem das cumpridas dela, com os links que a navegação produz.
-    private const string Base = "http://localhost:8081/api/insights/obrigacoes";
+    private const string Raiz = "http://localhost:8081/api/insights";
+    private const string Base = Raiz + "/obrigacoes";
 
     private static OpenApiObject ExemploDeObrigacao(bool comLinks)
     {
@@ -110,6 +124,121 @@ public sealed class ExemplosSchemaFilter : ISchemaFilter
     }
 
     private static OpenApiObject Href(string url) => new() { ["href"] = new OpenApiString(url) };
+
+    private static OpenApiObject Href(string url, string metodo) =>
+        new() { ["href"] = new OpenApiString(url), ["method"] = new OpenApiString(metodo) };
+
+    private static OpenApiObject ExemploDeAnalise(bool comLinks)
+    {
+        var exemplo = new OpenApiObject
+        {
+            ["idClinica"] = new OpenApiLong(23),
+            ["disponivel"] = new OpenApiBoolean(true),
+            ["motivoIndisponibilidade"] = new OpenApiNull(),
+            ["deltaPontosPercentuais"] = new OpenApiDouble(25.07),
+            ["consultasAtribuiveis"] = new OpenApiDouble(680.66),
+            ["receitaRecuperada"] = new OpenApiDouble(138671.07),
+            ["receitaEstimavel"] = new OpenApiBoolean(true),
+            ["ticketMedio"] = new OpenApiDouble(203.73),
+            ["tratado"] = ExemploDeCoorte("TRATADO", 2715, 1601, 58.97, 218),
+            ["controle"] = ExemploDeCoorte("CONTROLE", 354, 120, 33.90, 27)
+        };
+
+        if (comLinks)
+        {
+            exemplo["_links"] = new OpenApiObject
+            {
+                ["self"] = Href($"{Raiz}/coorte"),
+                ["obrigacoesTratamento"] = Href($"{Base}?grupo=tratamento"),
+                ["obrigacoesControle"] = Href($"{Base}?grupo=controle")
+            };
+        }
+
+        return exemplo;
+    }
+
+    // O resumo da clínica 581 no banco de demonstração, com um link por balde:
+    // cada um abre a listagem das obrigações vencidas que pararam naquele estado.
+    private static OpenApiObject ExemploDeResumo(bool comLinks)
+    {
+        var exemplo = new OpenApiObject
+        {
+            ["idClinica"] = new OpenApiLong(581),
+            ["total"] = new OpenApiInteger(3083),
+            ["cumpridas"] = new OpenApiInteger(1759),
+            ["pararamEmAgendada"] = new OpenApiInteger(0),
+            ["pararamEmRespondida"] = new OpenApiInteger(0),
+            ["pararamEmNotificada"] = new OpenApiInteger(11),
+            ["perdidas"] = new OpenApiInteger(1310),
+            ["naoTrabalhadas"] = new OpenApiInteger(3),
+            ["valorRecuperado"] = new OpenApiDouble(244405),
+            ["valorPerdido"] = new OpenApiDouble(180500),
+            ["mesInicio"] = new OpenApiString("2025-05-01T00:00:00"),
+            ["mesFim"] = new OpenApiString("2026-10-01T00:00:00")
+        };
+
+        if (comLinks)
+        {
+            static OpenApiObject Balde(string status) => Href($"{Base}?status={status}&ate=2026-10-27");
+
+            exemplo["_links"] = new OpenApiObject
+            {
+                ["self"] = Href($"{Base}/resumo"),
+                ["cumpridas"] = Balde("CUMPRIDA"),
+                ["pararamEmAgendada"] = Balde("AGENDADA"),
+                ["pararamEmRespondida"] = Balde("RESPONDIDA"),
+                ["pararamEmNotificada"] = Balde("NOTIFICADA"),
+                ["perdidas"] = Balde("PERDIDA"),
+                ["naoTrabalhadasPrevistas"] = Balde("PREVISTA"),
+                ["naoTrabalhadasCanceladas"] = Balde("CANCELADA")
+            };
+        }
+
+        return exemplo;
+    }
+
+    // Item e coleção de metas com as ações que cada um oferece: o método vai no
+    // link, para o cliente não ter de adivinhar qual verbo a rota aceita.
+    private static OpenApiObject ExemploDeMeta(long id, string indicador, double limiar, bool comLinks)
+    {
+        var exemplo = new OpenApiObject
+        {
+            ["id"] = new OpenApiLong(id),
+            ["indicador"] = new OpenApiString(indicador),
+            ["limiarPercentual"] = new OpenApiDouble(limiar),
+            ["dataCriacao"] = new OpenApiString("2026-10-28T23:41:07Z"),
+            ["dataAtualizacao"] = new OpenApiString("2026-10-28T23:41:07Z")
+        };
+
+        if (comLinks)
+        {
+            var self = $"{Raiz}/metas/{id}";
+
+            exemplo["_links"] = new OpenApiObject
+            {
+                ["self"] = Href(self),
+                ["atualizar"] = Href(self, "PUT"),
+                ["remover"] = Href(self, "DELETE")
+            };
+        }
+
+        return exemplo;
+    }
+
+    private static OpenApiObject ExemploDeColecaoDeMetas() =>
+        new()
+        {
+            ["itens"] = new OpenApiArray
+            {
+                ExemploDeMeta(61, "TaxaCumprimento", 55, comLinks: true),
+                ExemploDeMeta(62, "DeltaPontosPercentuais", 10, comLinks: true)
+            },
+            ["_links"] = new OpenApiObject
+            {
+                ["self"] = Href($"{Raiz}/metas"),
+                ["criar"] = Href($"{Raiz}/metas", "POST")
+            }
+        };
 
     private static OpenApiObject ExemploDeCoorte(
         string grupo,

@@ -15,7 +15,14 @@ clínico.** Ele lê as views que o core publica e governa por migration apenas a
 próprias tabelas, prefixadas `INS_`. **A integração entre os dois é a view, não
 HTTP.**
 
-Versão atual: **v1.2.0** (Sprint 4).
+Versão atual: **v1.2.1** (Sprint 4) — histórico no [CHANGELOG](CHANGELOG.md).
+A versão é declarada uma vez, em `Directory.Build.props`, e é a que o Swagger e o
+OpenTelemetry (`service.version`) reportam.
+
+> **Sem deploy.** O insights roda localmente ou no compose deste repositório; não
+> há instância publicada, e a ementa de .NET da Sprint 4 não exige uma. O deploy
+> do projeto é o do clyvo-core (Java). Para avaliar, siga
+> [Com Docker](#com-docker) ou [Local](#local).
 
 ## Integrantes
 
@@ -57,8 +64,8 @@ Versão atual: **v1.2.0** (Sprint 4).
 | Repositórios concretos (padrão Repository) | `Infrastructure/Persistencia/Repositorios/` (`LeituraDoCoreRepository`, `DetalheObrigacaoRepository`, `MetaIndicadorRepository`) e `Infrastructure/Mongo/ProjecaoRepository.cs` |
 | Health checks | `/health` e `/health/ready` — `Infrastructure/Saude/` |
 | Log estruturado | Serilog em JSON compacto, console e arquivo — [Logs](#logs) |
-| xUnit no padrão AAA | `tests/` — 140 unitários e 66 de integração, `MetodoTestado_Cenario_ResultadoEsperado` |
-| Cobertura de Domínio e Aplicação | Domain 96,6% e Application 98,7% de linhas — [docs/cobertura/Summary.md](docs/cobertura/Summary.md) |
+| xUnit no padrão AAA | `tests/` — 146 unitários e 95 de integração, `MetodoTestado_Cenario_ResultadoEsperado` |
+| Cobertura de Domínio e Aplicação | Domain 96,6% e Application 98,7% de linhas sem banco; Infrastructure 79% sem banco e 95,5% com — [Cobertura](#cobertura) |
 | README: visão geral, arquitetura, endpoints, instalação, testes, integrantes | Este arquivo |
 | Diagrama de arquitetura | [Arquitetura](#arquitetura), em Mermaid |
 
@@ -170,10 +177,13 @@ Clyvo.Insights.sln
 │  ├─ Clyvo.Insights.Infrastructure
 │  └─ Clyvo.Insights.Api
 ├─ tests/
-│  ├─ Clyvo.Insights.Tests.Unit          140 testes
-│  └─ Clyvo.Insights.Tests.Integration   66 testes (12 exigem banco)
+│  ├─ Clyvo.Insights.Tests.Unit          146 testes
+│  └─ Clyvo.Insights.Tests.Integration   95 testes (17 exigem banco)
 ├─ scripts/cobertura.ps1 · cobertura.sh
-└─ docs/cobertura/Summary.md
+├─ docs/cobertura/sem-infraestrutura/Summary.md
+├─ docs/cobertura/com-infraestrutura/Summary.md
+├─ Directory.Build.props                 versão da solução
+└─ CHANGELOG.md
 ```
 
 Sem MediatR, sem AutoMapper, sem biblioteca de HATEOAS. Caso de uso é classe com
@@ -415,9 +425,17 @@ do repositório).
 | `Mongo__ConnectionString` | não¹ | MongoDB das projeções |
 | `Core__BaseUrl` | não | clyvo-core, só para a sonda de disponibilidade |
 | `Serilog__Arquivo` | não | caminho do log em arquivo |
+| `Proxy__Confiaveis__0`, `__1`… | não² | IPs ou redes CIDR do proxy reverso cujos `X-Forwarded-*` são aceitos |
 
 ¹ Sem Mongo a API responde normalmente; só as projeções de saída deixam de ser
 gravadas e `/health/ready` sai *Degraded*.
+
+² Os `_links` usam o esquema e o host da requisição, e os cabeçalhos
+`X-Forwarded-For`, `-Proto` e `-Host` são aplicados antes de montá-los. Com a
+lista vazia, a API aceita esses cabeçalhos de qualquer origem **só em
+`Development` e `Testing`**; nos demais ambientes, só do loopback.
+**Risco:** quem consegue mandar `X-Forwarded-Host` direto para a API escolhe o host dos links que recebe. **Em produção**, ponha em
+`Proxy__Confiaveis__0` o IP ou a rede do proxy (ex.: `10.0.0.0/8`) e não exponha a porta da API fora dele.
 
 A aplicação **recusa a subir** sem `ConnectionStrings__Oracle` ou sem
 `Jwt__Secret`, com uma mensagem dizendo qual variável definir. Não há valor
@@ -428,14 +446,28 @@ FIAP.
 
 O compose deste repositório sobe o Mongo e a API .NET, e entra na rede que o
 compose do core já cria. As senhas vêm de um `.env` ao lado do
-`docker-compose.yaml` (ignorado pelo Git): copie o `.env.example` e preencha com
-os valores do compose do core. Variável ausente faz o compose recusar a subir.
+`docker-compose.yaml`, que o Git ignora. O compose lê esse arquivo sozinho e
+**recusa a subir** se faltar alguma variável, dizendo qual.
+
+| Variável do `.env` | De onde vem |
+|---|---|
+| `ORACLE_APP_PASSWORD` | senha do usuário `petflow` — `APP_USER_PASSWORD` no compose do core |
+| `JWT_SECRET` | **a mesma** `JWT_SECRET` do compose do core; outra chave faz todo token virar 401 |
+| `MONGO_PASSWORD` | senha do Mongo das projeções, escolhida por você. Se o volume do Mongo já existe, tem de ser a mesma da criação |
 
 ```bash
+# 1. o core primeiro: ele cria o Oracle, a rede e as views (até a V16)
 cd ../../Clyvo-Vet.java/server && docker compose up -d
 cd -
-cp .env.example .env            # e preencha
-docker compose up -d
+
+# 2. o .env do insights
+cp .env.example .env            # e preencha as três variáveis
+
+# 3. aplicar as migrations INS_ (uma vez, ou quando houver migration nova)
+ConnectionStrings__Oracle="User Id=petflow;Password=<ORACLE_APP_PASSWORD>;Data Source=localhost:1521/PETFLOWDB"   dotnet ef database update -p src/Clyvo.Insights.Infrastructure -s src/Clyvo.Insights.Infrastructure
+
+# 4. subir, reconstruindo a imagem
+docker compose up -d --build
 ```
 
 API em `http://localhost:8081`, Swagger em `http://localhost:8081/swagger`.
@@ -483,8 +515,8 @@ dotnet test
 ```
 
 Roda a suíte inteira sem exigir banco nenhum e sem nenhuma variável definida:
-**140 unitários + 54 de integração verdes, e 12 ignorados** — os que precisam de
-infraestrutura real (veja abaixo). Com a infraestrutura habilitada, são **206
+**146 unitários + 78 de integração verdes, e 17 ignorados** — os que precisam de
+infraestrutura real (veja abaixo). Com a infraestrutura habilitada, são **241
 verdes e nenhum ignorado**.
 
 ```bash
@@ -494,25 +526,36 @@ dotnet test --filter "FullyQualifiedName~ListarObrigacoes"
 
 ### Cobertura
 
-| Camada | Linhas | Ramos |
-|---|---|---|
-| **Domain** | **96,6%** | 95,8% |
-| **Application** | **98,7%** | 98,2% |
-| Api | 95,6% | 72,1% |
-| Infrastructure | 4,4% | 5,7% |
+Medida com o `coverlet.collector` dos csproj e consolidada pelo
+`reportgenerator` (ferramenta local, `.config/dotnet-tools.json`), em dois modos.
+**Nada é excluído da medição** — nem as migrations geradas.
 
-Medida com o `coverlet.collector` dos csproj sobre a suíte sem infraestrutura,
-consolidada pelo `reportgenerator` (ferramenta local, `.config/dotnet-tools.json`).
-Nada é excluído da medição. A Infrastructure fica baixa porque, sem banco, quase
-todo o código dela — repositórios EF, Mongo e as migrations geradas — só roda no
-grupo protegido por variável. Resumo completo em
-[docs/cobertura/Summary.md](docs/cobertura/Summary.md); para reproduzir:
+| Camada | Sem infraestrutura | Com infraestrutura |
+|---|---|---|
+| **Domain** | **96,6%** | 96,6% |
+| **Application** | **98,7%** | 99,1% |
+| Api | 96,3% | 96,3% |
+| Infrastructure | 79,0% | **95,5%** |
+| Total | 89,1% | 96,5% |
+
+*Sem infraestrutura* é a suíte de qualquer clone, sem banco. A Infrastructure
+chega a 79% porque o script das migrations (o `Up` e o `Down` de cada uma) é
+gerado e conferido sem conexão, e os health checks são testados com as
+dependências fora do ar. *Com infraestrutura* soma os 17 testes contra o Oracle
+e o Mongo locais: os repositórios EF e Mongo, as views e as sondas de prontidão.
+
+Resumos: [sem infraestrutura](docs/cobertura/sem-infraestrutura/Summary.md) ·
+[com infraestrutura](docs/cobertura/com-infraestrutura/Summary.md). Para reproduzir:
 
 ```bash
-./scripts/cobertura.ps1        # ou ./scripts/cobertura.sh
+./scripts/cobertura.ps1        # ou ./scripts/cobertura.sh — sem infraestrutura
+
+# com infraestrutura: as variáveis da seção abaixo, apontando para bancos locais.
+# O script imprime o host do Oracle e aborta se for da FIAP.
+CLYVO_TESTES_DE_INFRA=1 ./scripts/cobertura.sh
 ```
 
-O HTML detalhado fica em `TestResults/cobertura/relatorio/index.html`, fora do Git.
+O HTML detalhado fica em `TestResults/cobertura/<modo>/relatorio/index.html`, fora do Git.
 
 ### Organização
 
@@ -571,6 +614,15 @@ dotnet test
 | `ObterDaClinicaAsync_ComObrigacaoDeOutraClinica_DevolveNulo` | Recorte por tenant no detalhe |
 | `RegistrarSnapshotAsync_NoMongo_GravaDecimalComoDecimal128` | Decimal vai como número e o campo sai em camelCase |
 | `RegistrarConsultaAsync_NoMongo_AcrescentaLinhaAoLogDeConsulta` | A escrita real pelo caminho de DI da API |
+| `ObterCoortesDaClinicaAsync_NaViewReal_DevolveSoOsDoisBracosConhecidos` | Tradução de `DS_GRUPO` e cumpridas ≤ resolvidas |
+| `ObterFunilDaClinicaAsync_NaViewReal_CadaEtapaCabeNaAnterior` | O agregado do funil, etapa por etapa |
+| `ObterFunilDaClinicaAsync_DeClinicaSemDados_DevolveFunilZeradoSemJanela` | Clínica sem linhas não quebra o agregado |
+| `MetaIndicadorRepository_CicloCompleto_GravaLeAlteraERemoveSoNaClinicaDona` | CRUD do repositório de metas, recortado por tenant |
+| `SondasDeProntidao_ComOracleEMongoNoAr_FicamHealthy` | `/health/ready` com as dependências no ar |
+
+Sem banco, rodam sempre: `MigrationsTests` (script `Up`/`Down` gerado pelo
+provider do Oracle e snapshot igual ao modelo) e `SaudeDasDependenciasTests`
+(cada sonda com a dependência fora do ar, e a do core com HTTP dublado).
 
 Os que escrevem limpam o que escrevem, em clínicas de teste (`999001`, `999002`)
 que não existem no seed.
@@ -635,6 +687,8 @@ exportador por OTLP é uma linha, no dia em que houver coletor.
 ---
 
 ## Fora de escopo nesta entrega
+
+Deploy do insights: não há instância publicada (veja o aviso no topo).
 
 Ingestão de eventos por Service Bus e outbox. A migração do painel Thymeleaf e do
 app mobile para consumir esta API (setas tracejadas no diagrama de solução).
